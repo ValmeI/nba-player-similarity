@@ -4,7 +4,9 @@ from backend.utils.app_logger import logger
 from backend.src.process_data import load_and_process_csv
 
 
-def store_embeddings_to_qdrant(collection_name: str, data_path: str, host: str = "localhost", port: int = 6333):
+def store_embeddings_to_qdrant(
+    collection_name: str, data_path: str, host: str = "localhost", port: int = 6333, reset_collection: bool = False
+):
     """
     Function to store embeddings and metadata to Qdrant
 
@@ -19,11 +21,19 @@ def store_embeddings_to_qdrant(collection_name: str, data_path: str, host: str =
     df = load_and_process_csv(data_path)
     client = QdrantClient(host=host, port=port)
 
-    if collection_name not in [c.name for c in client.get_collections().collections]:
-        logger.info(f"Creating collection if not exists: '{collection_name}'...")
-        client.create_collection(collection_name, vectors_config={"size": 384, "distance": "Cosine"})
+    existing_collections = [c.name for c in client.get_collections().collections]
+    logger.info(f"Found following collections: {existing_collections}")
+
+    if collection_name in existing_collections:
+        if reset_collection:
+            logger.info(f"Resetting collection '{collection_name}'...")
+            client.delete_collection(collection_name)
+            client.create_collection(collection_name, vectors_config={"size": 384, "distance": "Cosine"})
+        else:
+            logger.info(f"Collection '{collection_name}' already exists. Skipping reset.")
     else:
-        logger.info(f"Collection '{collection_name}' already exists.")
+        logger.info(f"Creating collection: '{collection_name}'...")
+        client.create_collection(collection_name, vectors_config={"size": 384, "distance": "Cosine"})
 
     logger.info(f"Upserting embeddings and metadata to the Qdrant collection '{collection_name}'...")
     for idx, row in df.iterrows():

@@ -4,6 +4,7 @@ from typing import Optional, Type
 from types import TracebackType
 from loguru import logger
 import os
+from backend.config import settings
 
 
 def get_project_root() -> str:
@@ -23,8 +24,10 @@ def setup_loguru_logger() -> None:
         "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>{exception}"
     )
 
-    logger.add(log_file_path, rotation="00:00", level="INFO", format=log_format, backtrace=True, diagnose=True)
-    logger.add(sys.stderr, level="INFO", format=log_format, colorize=True, backtrace=True, diagnose=True)
+    logger.add(
+        log_file_path, rotation="00:00", level=settings.LOG_LEVEL, format=log_format, backtrace=True, diagnose=True
+    )
+    logger.add(sys.stderr, level=settings.LOG_LEVEL, format=log_format, colorize=True, backtrace=True, diagnose=True)
 
 
 def handle_exception(

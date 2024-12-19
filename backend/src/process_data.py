@@ -2,7 +2,8 @@
 
 import pandas as pd
 from sentence_transformers import SentenceTransformer
-from icecream import ic
+from backend.utils.app_logger import logger
+from backend.config import settings
 
 IMPORTANT_COLUMNS = ["Date", "Description", "Amount", "Sender/receiver name"]
 
@@ -15,11 +16,8 @@ def load_and_process_csv(file_path: str) -> pd.DataFrame:
     if IMPORTANT_COLUMNS != list(df.columns):
         raise Exception(f"Needed columns: {IMPORTANT_COLUMNS}. Found columns: {list(df.columns)}")
 
-    # create embeddings
-    model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
+    model = SentenceTransformer(settings.SENTENCE_TRANSFORMER_MODEL)
     df["embeddings"] = df["Description"].apply(lambda x: model.encode(str(x)).tolist())
-
-    ic("First 5 rows of processed data:")
-    ic(df.head())
+    logger.info(f"Created embeddings for {len(df)} transactions")
 
     return df

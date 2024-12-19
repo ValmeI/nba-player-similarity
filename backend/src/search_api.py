@@ -3,10 +3,11 @@
 from fastapi import FastAPI
 from sentence_transformers import SentenceTransformer
 from qdrant_client import QdrantClient
+from backend.config import settings
 
 app = FastAPI()
-model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
-client = QdrantClient(host="localhost", port=6333)
+model = SentenceTransformer(settings.SENTENCE_TRANSFORMER_MODEL)
+client = QdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT)
 
 
 @app.post("/search/")
