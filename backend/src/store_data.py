@@ -2,6 +2,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.models import PointStruct
 from backend.utils.app_logger import logger
 from backend.src.process_data import load_and_process_csv
+from backend.config import settings
 
 
 def store_embeddings_to_qdrant(
@@ -28,12 +29,14 @@ def store_embeddings_to_qdrant(
         if reset_collection:
             logger.info(f"Resetting collection '{collection_name}'...")
             client.delete_collection(collection_name)
-            client.create_collection(collection_name, vectors_config={"size": 384, "distance": "Cosine"})
+            client.create_collection(
+                collection_name, vectors_config={"size": settings.VECTOR_SIZE, "distance": "Cosine"}
+            )
         else:
             logger.info(f"Collection '{collection_name}' already exists. Skipping reset.")
     else:
         logger.info(f"Creating collection: '{collection_name}'...")
-        client.create_collection(collection_name, vectors_config={"size": 384, "distance": "Cosine"})
+        client.create_collection(collection_name, vectors_config={"size": settings.VECTOR_SIZE, "distance": "Cosine"})
 
     logger.info(f"Upserting embeddings and metadata to the Qdrant collection '{collection_name}'...")
     for idx, row in df.iterrows():
@@ -47,7 +50,7 @@ def store_embeddings_to_qdrant(
                         "description": row["Description"],
                         "amount": row["Amount"],
                         "date": row["Date"],
-                        "name": row["Sender/receiver name"],
+                        "sender_receiver_name": row["Sender/receiver name"],
                     },
                 )
             ],

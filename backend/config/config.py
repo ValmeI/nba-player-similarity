@@ -9,6 +9,7 @@ class Settings:
     QDRANT_PORT: int = int(os.getenv("QDRANT_PORT", str(6333)))
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
     SENTENCE_TRANSFORMER_MODEL: str = os.getenv("SENTENCE_TRANSFORMER_MODEL", "paraphrase-multilingual-MiniLM-L12-v2")
+    VECTOR_SIZE = os.getenv("VECTOR_SIZE", "384")
 
 
 settings = Settings()
