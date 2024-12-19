@@ -22,8 +22,10 @@ def store_embeddings_to_qdrant(collection_name: str, data_path: str, host: str =
     if collection_name not in [c.name for c in client.get_collections().collections]:
         logger.info(f"Creating collection if not exists: '{collection_name}'...")
         client.create_collection(collection_name, vectors_config={"size": 384, "distance": "Cosine"})
+    else:
+        logger.info(f"Collection '{collection_name}' already exists.")
 
-    logger.info(f"Saving embeddings and metadata to the Qdrant collection '{collection_name}'...")
+    logger.info(f"Upserting embeddings and metadata to the Qdrant collection '{collection_name}'...")
     for idx, row in df.iterrows():
         client.upsert(
             collection_name=collection_name,
