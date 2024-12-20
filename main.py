@@ -1,10 +1,10 @@
 #from fastapi import FastAPI
 from backend.src.search_api import app as search_app  # Import FastAPI pbject from search_api
 
-# Kui soovid `app` defineerida otse:
+# in case we want to use FastAPI directly
 # app = FastAPI()
 
-# Lae olemasolev app
+# load search_app
 app = search_app
 
 if __name__ == "__main__":
