@@ -14,6 +14,7 @@ client = QdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT)
 @app.post("/search/")
 def search_transactions(query: str):
     vector = model.encode(query).tolist()
+    logger.info(f'Query: "{query}"')
     search_result = client.search(collection_name="transactions", query_vector=vector, limit=5)
     logger.info(f"Found results: {json.dumps([result.payload for result in search_result], indent=1)}")
     format_results = [
