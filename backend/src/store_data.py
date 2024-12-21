@@ -98,7 +98,7 @@ def store_player_embeddings_to_qdrant(
     logger.info("Processing player stats and creating embeddings...")
     processed_df = create_season_embeddings(player_stats_df)
 
-    #initialize_qdrant_collection(client, collection_name, len(processed_df.iloc[0]["embeddings"]), reset_collection)
+    # initialize_qdrant_collection(client, collection_name, len(processed_df.iloc[0]["embeddings"]), reset_collection)
     upsert_player_data_to_qdrant(client, collection_name, processed_df)
 
     logger.info("Player embeddings and metadata saved to the Qdrant collection.")
@@ -112,15 +112,14 @@ def process_player_file(client: QdrantClient, file_path: str, collection_name: s
     if player_stats_df.empty:
         logger.warning(f"Empty DataFrame for {file_path}")
         return
-    store_player_embeddings_to_qdrant(
-        client=client,
-        collection_name=collection_name,
-        player_stats_df=player_stats_df
-    )
+    store_player_embeddings_to_qdrant(client=client, collection_name=collection_name, player_stats_df=player_stats_df)
 
 
 def process_player_files_in_threads(
-    client, file_paths, collection_name, max_workers=10,
+    client,
+    file_paths,
+    collection_name,
+    max_workers=10,
 ):
     """
     Process multiple player files concurrently using threading.
@@ -133,7 +132,7 @@ def process_player_files_in_threads(
         port (int): Qdrant server port.
     """
 
-    def worker(file_path: str):
+    def worker(file_path):
         process_player_file(client=client, file_path=file_path, collection_name=collection_name)
 
     logger.info("Starting processing of player files...")
@@ -149,6 +148,7 @@ def process_player_files_in_threads(
                 logger.error(f"Error processing file {file_path}: {e}")
 
     logger.info("All player files processed and stored in Qdrant.")
+
 
 """
 file_paths = [os.path.join(folder_path, file_path) for file_path in os.listdir(folder_path)]

@@ -19,13 +19,13 @@ if __name__ == "__main__":
         client=client,
         collection_name="player_career_trajectory",
         vector_size=settings.VECTOR_SIZE,
-        reset_collection=True, # True to allow duplication of the data
-        )
+        reset_collection=True,  # True to allow duplication of the data
+    )
     process_player_files_in_threads(
         client=client,
         file_paths=file_paths,
         collection_name="player_career_trajectory",
-        max_workers=settings.MAX_THREADING_WORKERS
+        max_workers=settings.MAX_THREADING_WORKERS,
     )
     logger.info(
         f"Finished data fetching process on {datetime.datetime.now()} and it took in minutes {round((time.time() - start_time) / 60, 2)}"

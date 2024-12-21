@@ -1,4 +1,3 @@
-
 def remove_duplicates(search_results: list):
     seen_combinations = set()
     unique_results = []
@@ -10,6 +9,5 @@ def remove_duplicates(search_results: list):
     return unique_results
 
 
-def remove_same_players(search_results: list):
-    # TODO: Implement
-    pass
+def remove_same_player(search_results: list, player_name: str):
+    return [result for result in search_results if result.payload["player_name"].lower() != player_name]

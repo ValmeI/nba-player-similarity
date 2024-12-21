@@ -1,3 +1,5 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import threading
 from nba_api.stats.static import players
 import os
 import pandas as pd
@@ -6,10 +8,11 @@ from backend.utils.fuzz_utils import find_top_matches
 from backend.config import settings
 from backend.utils.app_logger import logger
 
+
 def save_parquet_file_locally(df: pd.DataFrame, file_path: str):
     df.to_parquet(file_path, index=False)
-    
-    
+
+
 def remove_multiple_seasons(df: pd.DataFrame):
     df = df.sort_values("SEASON_ID")
     df = df.drop_duplicates(subset=["PLAYER_ID", "SEASON_ID"], keep="last")
@@ -30,7 +33,7 @@ def get_player_stats_from_local_file(player_name: str, data_dir: str = "data/pla
     return pd.read_parquet(file_path)
 
 
-def fetch_and_save_player_stats(player_name: str, data_dir: str = "data/players_parquet"):
+def fetch_and_save_player_stats(player_name: str, data_dir: str = "data/players_parquet", max_workers: int = 10):
     if not os.path.exists(data_dir):
         os.makedirs(data_dir)
 
@@ -42,10 +45,7 @@ def fetch_and_save_player_stats(player_name: str, data_dir: str = "data/players_
 
     file_path = os.path.join(data_dir, f'{player_name.replace(" ", "_")}_career_stats.parquet')
 
-    if os.path.exists(file_path):
-        logger.info(f"Data for {player_name} already exists, continuing with next player.")
-        return None
-    else:
+    def fetch_data_worker():
         logger.info(f"Fetching data for {player_name} from NBA API.")
         career = playercareerstats.PlayerCareerStats(player_id=player_id)
         player_stats_df = career.get_data_frames()[0]
@@ -60,7 +60,24 @@ def fetch_and_save_player_stats(player_name: str, data_dir: str = "data/players_
         )
         save_parquet_file_locally(full_player_stats_df, file_path)
         logger.info(f"Data for {player_name} saved to {file_path}.")
-        return full_player_stats_df
+    
+    if os.path.exists(file_path):
+        logger.info(f"Data for {player_name} already exists, continuing with next player.")
+        return None
+    else:
+        logger.info(f"Starting thread to fetch data for {player_name} from NBA API.")
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future = executor.submit(fetch_data_worker)
+            
+            for future in as_completed([future]):
+                try:
+                    future.result()
+                    logger.info(f"Successfully fetched data for {player_name} with thread {threading.get_ident()}.")
+                except Exception as e:
+                    logger.error(f"Error fetching data for {player_name} with thread {threading.get_ident()}: {e}")
+                    
+    logger.info(f"Finished thread to fetch data for {player_name}.")
+    
 
 
 def calculate_season_stat_averages_per_game(player_stats_df: pd.DataFrame):
@@ -93,6 +110,6 @@ if __name__ == "__main__":
     start_time = pd.Timestamp.now()
     logger.info(f"Starting data fetching process on {start_time}")
     fetch_all_players_stats()
-    #get_player_stats_from_local_file("Charles Nash")
-    #fetch_and_save_player_stats("Shareef Abdur-Rahim")
+    # get_player_stats_from_local_file("Charles Nash")
+    # fetch_and_save_player_stats("Shareef Abdur-Rahim")
     logger.info(f"Finished data fetching process on {pd.Timestamp.now()} and it took {pd.Timestamp.now() - start_time}")

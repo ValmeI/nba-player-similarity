@@ -3,7 +3,7 @@ from qdrant_client import QdrantClient
 from backend.config import settings
 from backend.utils.app_logger import logger
 from backend.src.process_data import create_season_embeddings
-from backend.utils.search_results import remove_duplicates
+from backend.utils.search_results import remove_duplicates, remove_same_player
 from data.get_nba_data import get_player_stats_from_local_file
 import json
 import pandas as pd
@@ -45,10 +45,11 @@ def search_player_trajectory(player_name: str):
     search_result = client.search(
         collection_name="player_career_trajectory", query_vector=query_vector, limit=5, with_payload=True
     )
-    
-    logger.info(f"Removing duplicate results for player: {player_name}")
-    #search_result = remove_duplicates(search_result) # TODO. see if needed
 
+    # logger.info(f"Removing duplicate results for player: {player_name}")
+    # search_result = remove_duplicates(search_result) # TODO. see if needed
+
+    search_result = remove_same_player(search_result, player_name)
     logger.info(f"Found results: {json.dumps([result.payload for result in search_result], indent=1)}")
     formatted_results = [
         {

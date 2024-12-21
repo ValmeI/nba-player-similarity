@@ -3,6 +3,7 @@ from backend.src.search_api import prepare_input_query_vector, search_player_tra
 from backend.utils.app_logger import logger
 import json
 
+
 def delete_collection(collection_name: str, host: str = "localhost", port: int = 6333):
     client = QdrantClient(host=host, port=port)
     collections = [c.name for c in client.get_collections().collections]
@@ -32,8 +33,9 @@ def search_collection(collection_name: str, query: str, host: str = "localhost",
 
 
 if __name__ == "__main__":
-    #delete_collection("player_career_trajectory")
+    # delete_collection("player_career_trajectory")
     # fetch_all_collections()
-    #search_collection("player_career_trajectory", "kobe bryant")
-    search_player_trajectory("kobe bryant")
+    # search_collection("player_career_trajectory", "kobe bryant")
+    # search_player_trajectory("kobe bryant")
+    # search_player_trajectory("Charles Nash")
     search_player_trajectory("Charles Nash")
