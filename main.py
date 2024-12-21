@@ -1,4 +1,4 @@
-#from fastapi import FastAPI
+# from fastapi import FastAPI
 from backend.src.search_api import app as search_app  # Import FastAPI pbject from search_api
 
 # in case we want to use FastAPI directly

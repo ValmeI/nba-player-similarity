@@ -1,23 +1,37 @@
-# CSV andmete töötlemine ja embeddingute loomine
-
 import pandas as pd
-from sentence_transformers import SentenceTransformer
+from sklearn.preprocessing import StandardScaler
 from backend.utils.app_logger import logger
-from backend.config import settings
 
-IMPORTANT_COLUMNS = ["Date", "Description", "Amount", "Sender/receiver name"]
+# Define the numeric columns for embedding
+NUMERIC_COLUMNS = [
+    "PTS_PER_GAME",
+    "AST_PER_GAME",
+    "STL_PER_GAME",
+    "BLK_PER_GAME",
+    "TOV_PER_GAME",
+    "PF_PER_GAME",
+    "OREB_PER_GAME",
+    "DREB_PER_GAME",
+]
+
+METADATA_COLUMNS = ["SEASON_ID", "PLAYER_NAME"]
 
 
-def load_and_process_csv(file_path: str) -> pd.DataFrame:
-    df = pd.read_csv(file_path)
+def normalize_features(player_stats_df: pd.DataFrame) -> pd.DataFrame:
+    scaler = StandardScaler()
+    player_stats_df[NUMERIC_COLUMNS] = scaler.fit_transform(player_stats_df[NUMERIC_COLUMNS])
+    return player_stats_df
 
-    df = df[IMPORTANT_COLUMNS]
 
-    if IMPORTANT_COLUMNS != list(df.columns):
-        raise Exception(f"Needed columns: {IMPORTANT_COLUMNS}. Found columns: {list(df.columns)}")
+def create_season_embeddings(player_stats_df: pd.DataFrame) -> pd.DataFrame:
+    missing_columns = [col for col in NUMERIC_COLUMNS if col not in player_stats_df.columns]
 
-    model = SentenceTransformer(settings.SENTENCE_TRANSFORMER_MODEL)
-    df["embeddings"] = df["Description"].apply(lambda x: model.encode(str(x)).tolist())
-    logger.info(f"Created embeddings for {len(df)} transactions")
+    if missing_columns:
+        raise ValueError(f"Missing required columns for processing: {missing_columns}")
 
-    return df
+    player_stats_df = normalize_features(player_stats_df)
+    player_stats_df["embeddings"] = player_stats_df[NUMERIC_COLUMNS].apply(lambda row: row.to_numpy().tolist(), axis=1)
+    logger.info(
+        f"Created embeddings for {len(player_stats_df)} seasons for player: {player_stats_df['PLAYER_NAME'].iloc[0]}"
+    )
+    return player_stats_df[METADATA_COLUMNS + ["embeddings"]]
