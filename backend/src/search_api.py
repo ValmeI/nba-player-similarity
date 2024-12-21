@@ -24,12 +24,15 @@ def prepare_input_query_vector(player_name: str) -> list:
     # Fetch player stats
     try:
         player_stats_df = get_player_stats_from_local_file(player_name)
+        logger.debug(f"Player stats for {player_name}: {player_stats_df}")
         processed_df = create_season_embeddings(player_stats_df)
+        logger.debug(f"Embedded player stats for {player_name}: {processed_df}")
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
 
     # Compute and return query vector
     query_vector = processed_df["embeddings"].apply(pd.Series).mean(axis=0).tolist()
+    logger.debug(f"Query vector for {player_name}: {processed_df["embeddings"].apply(pd.Series).median(axis=0).tolist()}")
     return query_vector
 
 
