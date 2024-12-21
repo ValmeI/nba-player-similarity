@@ -58,6 +58,8 @@ def upsert_player_data_to_qdrant(client: QdrantClient, collection_name: str, pro
             "blocks_per_game": row.get("BLK_PER_GAME", None),
             "turnovers_per_game": row.get("TOV_PER_GAME", None),
             "personal_fouls_per_game": row.get("PF_PER_GAME", None),
+            "true_shooting_percentage": row.get("TS%", None),
+            "player_efficiency_rating": row.get("PER", None),
         }
 
         if None in stats_to_include.values():
@@ -95,13 +97,14 @@ def store_player_embeddings_to_qdrant(
         host (str): Qdrant server host, default "localhost".
         port (int): Qdrant server port, default 6333.
     """
-    logger.info("Processing player stats and creating embeddings...")
+    player_name = player_stats_df.iloc[0]["PLAYER_NAME"]
+    logger.info(f"Processing player '{player_name}' for embeddings and metadata...")
     processed_df = create_season_embeddings(player_stats_df)
 
     # initialize_qdrant_collection(client, collection_name, len(processed_df.iloc[0]["embeddings"]), reset_collection)
     upsert_player_data_to_qdrant(client, collection_name, processed_df)
 
-    logger.info("Player embeddings and metadata saved to the Qdrant collection.")
+    logger.info(f"Player '{player_name}' embeddings and metadata stored in Qdrant.")
 
 
 def process_player_file(client: QdrantClient, file_path: str, collection_name: str):

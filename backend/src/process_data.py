@@ -6,15 +6,26 @@ pd.set_option("future.no_silent_downcasting", True)
 
 # Define the numeric columns for embedding
 NUMERIC_COLUMNS = [
-    "PTS_PER_GAME",
-    "AST_PER_GAME",
-    "STL_PER_GAME",
-    "BLK_PER_GAME",
-    "TOV_PER_GAME",
-    "PF_PER_GAME",
-    "OREB_PER_GAME",
-    "DREB_PER_GAME",
+    "PTS_PER_GAME",  # Points per game
+    "AST_PER_GAME",  # Assists per game
+    "STL_PER_GAME",  # Steals per game
+    "BLK_PER_GAME",  # Blocks per game
+    "TOV_PER_GAME",  # Turnovers per game
+    "PF_PER_GAME",  # Personal fouls per game
+    "OREB_PER_GAME",  # Offensive rebounds per game
+    "DREB_PER_GAME",  # Defensive rebounds per game
+    "TS%",  # True shooting percentage
+    "EFG%",  # Effective field goal percentage
+    "PER",  # Player efficiency rating
+    "USG%",  # Usage rate
+    "TOV%",  # Turnover rate
+    "WS/48",  # Win shares per 48 minutes
+    "FTR",  # Free throw rate
+    "ORB%",  # Offensive rebound percentage
+    "DRB%",  # Defensive rebound percentage
+    "PTS Responsibility",  # Points responsibility
 ]
+
 
 NEW_NORMALIZED_COLUMNS = [f"NORM_{col}" for col in NUMERIC_COLUMNS]
 

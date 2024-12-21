@@ -1,6 +1,7 @@
 from qdrant_client import QdrantClient
 from backend.src.search_api import prepare_input_query_vector, search_player_trajectory
 from backend.utils.app_logger import logger
+from backend.config import settings
 import json
 
 
@@ -26,7 +27,10 @@ def search_collection(collection_name: str, query: str, host: str = "localhost",
     query_vector = prepare_input_query_vector(query)
     logger.info(f"Query vector: {query_vector}")
     search_result = client.search(
-        collection_name=collection_name, query_vector=query_vector, limit=5, with_payload=True
+        collection_name=collection_name,
+        query_vector=query_vector,
+        limit=settings.VECTOR_SEARCH_LIMIT,
+        with_payload=True,
     )
     logger.info(f"Found results: {json.dumps([result.payload for result in search_result], indent=1)}")
     return search_result
@@ -38,4 +42,4 @@ if __name__ == "__main__":
     # search_collection("player_career_trajectory", "kobe bryant")
     # search_player_trajectory("kobe bryant")
     # search_player_trajectory("Charles Nash")
-    search_player_trajectory("Charles Nash")
+    search_player_trajectory("Larry Sykes")

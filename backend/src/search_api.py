@@ -43,7 +43,10 @@ def search_player_trajectory(player_name: str):
     query_vector = prepare_input_query_vector(player_name)
 
     search_result = client.search(
-        collection_name="player_career_trajectory", query_vector=query_vector, limit=5, with_payload=True
+        collection_name="player_career_trajectory",
+        query_vector=query_vector,
+        limit=settings.VECTOR_SEARCH_LIMIT,
+        with_payload=True,
     )
 
     # logger.info(f"Removing duplicate results for player: {player_name}")
