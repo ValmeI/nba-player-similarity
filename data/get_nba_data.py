@@ -2,8 +2,8 @@ from nba_api.stats.static import players
 import os
 import pandas as pd
 from nba_api.stats.endpoints import playercareerstats
-
-# from icecream import ic
+from backend.utils.fuzz_utils import find_top_matches
+from backend.config import settings
 from backend.utils.app_logger import logger
 
 
@@ -16,6 +16,13 @@ def fill_missing_values(df: pd.DataFrame):
     medians = df[numeric_columns].median()
     df[numeric_columns] = df[numeric_columns].fillna(medians)
     return df
+
+
+def get_player_stats_from_local_file(player_name: str, data_dir: str = "data/players_parquet"):
+    all_files = os.listdir(data_dir)
+    best_match_file_name = find_top_matches(player_name, all_files, settings.FUZZ_THRESHOLD)
+    file_path = os.path.join(data_dir, best_match_file_name)
+    return pd.read_parquet(file_path)
 
 
 def fetch_and_save_player_stats(player_name: str, data_dir: str = "data/players_parquet"):
@@ -79,5 +86,6 @@ def fetch_all_players_stats():
 if __name__ == "__main__":
     start_time = pd.Timestamp.now()
     logger.info(f"Starting data fetching process on {start_time}")
-    fetch_all_players_stats()
+    # fetch_all_players_stats()
+    get_player_stats_from_local_file("LeBron James")
     logger.info(f"Finished data fetching process on {pd.Timestamp.now()} and it took {pd.Timestamp.now() - start_time}")

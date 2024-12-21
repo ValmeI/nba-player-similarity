@@ -1,30 +1,65 @@
-from fastapi import FastAPI
-from sentence_transformers import SentenceTransformer
+from fastapi import FastAPI, HTTPException
 from qdrant_client import QdrantClient
 from backend.config import settings
 from backend.utils.app_logger import logger
+from backend.src.process_data import create_season_embeddings
+from data.get_nba_data import get_player_stats_from_local_file
 import json
-
+import pandas as pd
 
 app = FastAPI()
-model = SentenceTransformer(settings.SENTENCE_TRANSFORMER_MODEL)
 client = QdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT)
 
 
+def prepare_input_query_vector(player_name: str) -> list:
+    """
+    Fetch user input player stast and prepare the query vector for similarity search.
+
+    Args:
+        player_name (str): Name of the input player.
+
+    Returns:
+        list: Query vector representing the player's career trajectory.
+    """
+    # Fetch player stats
+    try:
+        player_stats_df = get_player_stats_from_local_file(player_name)
+        processed_df = create_season_embeddings(player_stats_df)
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+    # Compute and return query vector
+    query_vector = processed_df["embeddings"].apply(pd.Series).mean(axis=0).tolist()
+    return query_vector
+
+
 @app.post("/search/")
-def search_transactions(query: str):
-    vector = model.encode(query).tolist()
-    logger.info(f'Query: "{query}"')
-    search_result = client.search(collection_name="transactions", query_vector=vector, limit=5)
+def search_player_trajectory(player_name: str):
+    player_name = player_name.lower()
+    logger.info(f'Received search query for player: "{player_name}"')
+
+    query_vector = prepare_input_query_vector(player_name)
+
+    search_result = client.search(
+        collection_name="player_career_trajectory", query_vector=query_vector, limit=5, with_payload=True
+    )
+
     logger.info(f"Found results: {json.dumps([result.payload for result in search_result], indent=1)}")
-    format_results = [
+    formatted_results = [
         {
-            "date": result.payload["date"],
-            "description": result.payload["description"],
-            "amount": result.payload["amount"],
-            "sender_receiver_name": result.payload["sender_receiver_name"],
-            "score": result.score,
+            "player_name": result.payload["player_name"],
+            "season_id": result.payload["season_id"],
+            "points_per_game": result.payload.get("points_per_game"),
+            "offensive_rebounds_per_game": result.payload.get("offensive_rebounds_per_game"),
+            "defensive_rebounds_per_game": result.payload.get("defensive_rebounds_per_game"),
+            "steals_per_game": result.payload.get("steals_per_game"),
+            "assists_per_game": result.payload.get("assists_per_game"),
+            "blocks_per_game": result.payload.get("blocks_per_game"),
+            "turnovers_per_game": result.payload.get("turnovers_per_game"),
+            "personal_fouls_per_game": result.payload.get("personal_fouls_per_game"),
+            "similarity_score": result.score,
         }
         for result in search_result
     ]
-    return format_results
+
+    return formatted_results

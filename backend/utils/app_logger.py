@@ -15,9 +15,11 @@ def setup_loguru_logger() -> None:
     logger.remove()
     project_root = get_project_root()
     logs_folder_name = "logs"
-    file_log_name = "spend_search_backend.log"
-    log_file_path = os.path.join(project_root, logs_folder_name, file_log_name)
-    os.makedirs(os.path.dirname(log_file_path), exist_ok=True)
+    main_log_file_name = "spend_search_backend.log"
+    error_log_file_name = "spend_search_errors_warnings.log"
+    main_log_file_path = os.path.join(project_root, logs_folder_name, main_log_file_name)
+    error_log_file_path = os.path.join(project_root, logs_folder_name, error_log_file_name)
+    os.makedirs(os.path.dirname(main_log_file_path), exist_ok=True)
 
     log_format = (
         "<green>{time:YYYY-MM-DD HH:mm:ss.SSS ZZ}</green> | <level>{level: <8}</level> | "
@@ -25,8 +27,19 @@ def setup_loguru_logger() -> None:
     )
 
     logger.add(
-        log_file_path, rotation="00:00", level=settings.LOG_LEVEL, format=log_format, backtrace=True, diagnose=True
+        main_log_file_path, rotation="00:00", level=settings.LOG_LEVEL, format=log_format, backtrace=True, diagnose=True
     )
+
+    logger.add(
+        error_log_file_path,
+        rotation="00:00",
+        level="WARNING",
+        format=log_format,
+        backtrace=True,
+        diagnose=True,
+    )
+
+    # Add console output
     logger.add(sys.stderr, level=settings.LOG_LEVEL, format=log_format, colorize=True, backtrace=True, diagnose=True)
 
 

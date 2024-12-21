@@ -4,31 +4,19 @@ from backend.utils.app_logger import logger
 from backend.src.process_data import create_season_embeddings
 from backend.config import settings
 import pandas as pd
-from concurrent.futures import ThreadPoolExecutor
-import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
-def store_player_embeddings_to_qdrant(
-    collection_name: str,
-    player_stats_df: pd.DataFrame,
-    host: str = "localhost",
-    port: int = 6333,
-    reset_collection: bool = False,
-):
+def initialize_qdrant_collection(client: QdrantClient, collection_name: str, vector_size: int, reset_collection: bool):
     """
-    Function to store player embeddings and metadata to Qdrant.
+    Initialize the Qdrant collection: create or reset it as needed.
 
     Args:
+        client (QdrantClient): Qdrant client instance.
         collection_name (str): Qdrant collection name.
-        player_stats_df (pd.DataFrame): DataFrame containing player stats and embeddings.
-        host (str): Qdrant server host, default "localhost".
-        port (int): Qdrant server port, default 6333.
+        vector_size (int): Size of the vector.
         reset_collection (bool): Whether to reset the collection if it already exists.
     """
-    logger.info("Processing player stats and creating embeddings...")
-    processed_df = create_season_embeddings(player_stats_df)
-    client = QdrantClient(host=host, port=port)
-
     existing_collections = [c.name for c in client.get_collections().collections]
     logger.info(f"Found existing collections: {existing_collections}")
 
@@ -36,28 +24,31 @@ def store_player_embeddings_to_qdrant(
         if reset_collection:
             logger.info(f"Resetting collection '{collection_name}'...")
             client.delete_collection(collection_name)
-            client.create_collection(
-                collection_name,
-                vectors_config={
-                    "size": len(processed_df.iloc[0]["embeddings"]),
-                    "distance": settings.VECTOR_DISTANCE_METRIC,
-                },
-            )
         else:
             logger.info(f"Collection '{collection_name}' already exists. Skipping reset.")
-    else:
-        logger.info(f"Creating collection: '{collection_name}'...")
-        client.create_collection(
-            collection_name,
-            vectors_config={
-                "size": len(processed_df.iloc[0]["embeddings"]),
-                "distance": settings.VECTOR_DISTANCE_METRIC,
-            },
-        )
+            return
 
+    logger.info(f"Creating collection: '{collection_name}'...")
+    client.create_collection(
+        collection_name,
+        vectors_config={
+            "size": vector_size,
+            "distance": settings.VECTOR_DISTANCE_METRIC,
+        },
+    )
+
+
+def upsert_player_data_to_qdrant(client: QdrantClient, collection_name: str, processed_df: pd.DataFrame):
+    """
+    Upsert player embeddings and metadata into Qdrant.
+
+    Args:
+        client (QdrantClient): Qdrant client instance.
+        collection_name (str): Qdrant collection name.
+        processed_df (pd.DataFrame): DataFrame containing player stats and embeddings.
+    """
     logger.info(f"Upserting player embeddings and metadata to the Qdrant collection '{collection_name}'...")
     for idx, row in processed_df.iterrows():
-
         stats_to_include = {
             "points_per_game": row.get("PTS_PER_GAME", None),
             "offensive_rebounds_per_game": row.get("OREB_PER_GAME", None),
@@ -68,6 +59,10 @@ def store_player_embeddings_to_qdrant(
             "turnovers_per_game": row.get("TOV_PER_GAME", None),
             "personal_fouls_per_game": row.get("PF_PER_GAME", None),
         }
+
+        if None in stats_to_include.values():
+            logger.error(f"Player {row['PLAYER_NAME']} of season {row['SEASON_ID']} has incomplete data.")
+            continue
 
         client.upsert(
             collection_name=collection_name,
@@ -83,6 +78,32 @@ def store_player_embeddings_to_qdrant(
                 )
             ],
         )
+        logger.info(f"Upserted player {row['PLAYER_NAME']} of season {row['SEASON_ID']} to the Qdrant collection.")
+
+
+def store_player_embeddings_to_qdrant(
+    collection_name: str,
+    player_stats_df: pd.DataFrame,
+    host: str = "localhost",
+    port: int = 6333,
+    reset_collection: bool = False,
+):
+    """
+    Process player stats, create embeddings, and store in Qdrant.
+
+    Args:
+        collection_name (str): Qdrant collection name.
+        player_stats_df (pd.DataFrame): DataFrame containing player stats and embeddings.
+        host (str): Qdrant server host, default "localhost".
+        port (int): Qdrant server port, default 6333.
+        reset_collection (bool): Whether to reset the collection if it already exists.
+    """
+    logger.info("Processing player stats and creating embeddings...")
+    processed_df = create_season_embeddings(player_stats_df)
+    client = QdrantClient(host=host, port=port)
+
+    initialize_qdrant_collection(client, collection_name, len(processed_df.iloc[0]["embeddings"]), reset_collection)
+    upsert_player_data_to_qdrant(client, collection_name, processed_df)
 
     logger.info("Player embeddings and metadata saved to the Qdrant collection.")
 
@@ -92,6 +113,9 @@ def process_player_file(file_path, collection_name, host="localhost", port=6333,
     Process a single player's file and store embeddings in Qdrant.
     """
     player_stats_df = pd.read_parquet(file_path)
+    if player_stats_df.empty:
+        logger.warning(f"Empty DataFrame for {file_path}")
+        return
     store_player_embeddings_to_qdrant(
         collection_name=collection_name,
         player_stats_df=player_stats_df,
@@ -116,23 +140,31 @@ def process_player_files_in_threads(
         reset_collection (bool): Whether to reset the Qdrant collection.
     """
 
-    def worker(file_path):
+    def worker(file_path: str):
         process_player_file(file_path, collection_name, host, port, reset_collection)
 
+    logger.info("Starting processing of player files...")
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        executor.map(worker, file_paths)
+        future_to_file = {executor.submit(worker, file_path): file_path for file_path in file_paths}
+
+        for future in as_completed(future_to_file):
+            file_path = future_to_file[future]
+            try:
+                future.result()  # Raise exceptions if they occurred during thread execution
+                logger.info(f"Successfully processed file: {file_path}")
+            except Exception as e:
+                logger.error(f"Error processing file {file_path}: {e}")
+
+    logger.info("All player files processed and stored in Qdrant.")
 
 
-if __name__ == "__main__":
-    folder_path = "data/players_parquet"
-    logger.info(f"Loading data from {folder_path}")
-    load_file_paths = os.listdir(folder_path)
-    logger.info(f"Found {len(load_file_paths)} files")
-    process_player_files_in_threads(
-        file_paths=load_file_paths,
-        collection_name="player_career_trajectory",
-        max_workers=10,
-        host="localhost",
-        port=6333,
-        reset_collection=False,
-    )
+# player_stats_df = pd.read_parquet("data/players_parquet/George_Grimshaw_career_stats.parquet")
+# store_player_embeddings_to_qdrant("player_career_trajectory", player_stats_df, host="localhost", port=6333)
+
+"""
+process_player_files_in_threads(
+    file_paths=["data/players_parquet/LeBron_James_career_stats.parquet"],
+    collection_name="player_career_trajectory",
+    max_workers=10,
+    host="localhost",)
+"""
