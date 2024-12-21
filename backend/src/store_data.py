@@ -82,11 +82,9 @@ def upsert_player_data_to_qdrant(client: QdrantClient, collection_name: str, pro
 
 
 def store_player_embeddings_to_qdrant(
+    client: QdrantClient,
     collection_name: str,
     player_stats_df: pd.DataFrame,
-    host: str = "localhost",
-    port: int = 6333,
-    reset_collection: bool = False,
 ):
     """
     Process player stats, create embeddings, and store in Qdrant.
@@ -96,19 +94,17 @@ def store_player_embeddings_to_qdrant(
         player_stats_df (pd.DataFrame): DataFrame containing player stats and embeddings.
         host (str): Qdrant server host, default "localhost".
         port (int): Qdrant server port, default 6333.
-        reset_collection (bool): Whether to reset the collection if it already exists.
     """
     logger.info("Processing player stats and creating embeddings...")
     processed_df = create_season_embeddings(player_stats_df)
-    client = QdrantClient(host=host, port=port)
 
-    initialize_qdrant_collection(client, collection_name, len(processed_df.iloc[0]["embeddings"]), reset_collection)
+    #initialize_qdrant_collection(client, collection_name, len(processed_df.iloc[0]["embeddings"]), reset_collection)
     upsert_player_data_to_qdrant(client, collection_name, processed_df)
 
     logger.info("Player embeddings and metadata saved to the Qdrant collection.")
 
 
-def process_player_file(file_path, collection_name, host="localhost", port=6333, reset_collection=False):
+def process_player_file(client: QdrantClient, file_path: str, collection_name: str):
     """
     Process a single player's file and store embeddings in Qdrant.
     """
@@ -117,16 +113,14 @@ def process_player_file(file_path, collection_name, host="localhost", port=6333,
         logger.warning(f"Empty DataFrame for {file_path}")
         return
     store_player_embeddings_to_qdrant(
+        client=client,
         collection_name=collection_name,
-        player_stats_df=player_stats_df,
-        host=host,
-        port=port,
-        reset_collection=reset_collection,
+        player_stats_df=player_stats_df
     )
 
 
 def process_player_files_in_threads(
-    file_paths, collection_name, max_workers=10, host="localhost", port=6333, reset_collection=False
+    client, file_paths, collection_name, max_workers=10,
 ):
     """
     Process multiple player files concurrently using threading.
@@ -137,11 +131,10 @@ def process_player_files_in_threads(
         max_workers (int): Maximum number of threads to use.
         host (str): Qdrant server host.
         port (int): Qdrant server port.
-        reset_collection (bool): Whether to reset the Qdrant collection.
     """
 
     def worker(file_path: str):
-        process_player_file(file_path, collection_name, host, port, reset_collection)
+        process_player_file(client=client, file_path=file_path, collection_name=collection_name)
 
     logger.info("Starting processing of player files...")
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -157,14 +150,10 @@ def process_player_files_in_threads(
 
     logger.info("All player files processed and stored in Qdrant.")
 
-
-# player_stats_df = pd.read_parquet("data/players_parquet/George_Grimshaw_career_stats.parquet")
-# store_player_embeddings_to_qdrant("player_career_trajectory", player_stats_df, host="localhost", port=6333)
-
 """
+file_paths = [os.path.join(folder_path, file_path) for file_path in os.listdir(folder_path)]
 process_player_files_in_threads(
-    file_paths=["data/players_parquet/LeBron_James_career_stats.parquet"],
+    file_paths=file_paths,
     collection_name="player_career_trajectory",
-    max_workers=10,
-    host="localhost",)
+    max_workers=settings.MAX_THREADING_WORKERS,)
 """

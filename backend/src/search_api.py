@@ -3,6 +3,7 @@ from qdrant_client import QdrantClient
 from backend.config import settings
 from backend.utils.app_logger import logger
 from backend.src.process_data import create_season_embeddings
+from backend.utils.search_results import remove_duplicates
 from data.get_nba_data import get_player_stats_from_local_file
 import json
 import pandas as pd
@@ -21,18 +22,16 @@ def prepare_input_query_vector(player_name: str) -> list:
     Returns:
         list: Query vector representing the player's career trajectory.
     """
-    # Fetch player stats
     try:
         player_stats_df = get_player_stats_from_local_file(player_name)
-        logger.debug(f"Player stats for {player_name}: {player_stats_df}")
+        logger.debug(f"Player stats for {player_name}: \n{player_stats_df}")
         processed_df = create_season_embeddings(player_stats_df)
-        logger.debug(f"Embedded player stats for {player_name}: {processed_df}")
+        logger.debug(f"Embedded player stats for {player_name}: \n{processed_df}")
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
 
-    # Compute and return query vector
-    query_vector = processed_df["embeddings"].apply(pd.Series).mean(axis=0).tolist()
-    logger.debug(f"Query vector for {player_name}: {processed_df["embeddings"].apply(pd.Series).median(axis=0).tolist()}")
+    query_vector = processed_df["embeddings"].apply(pd.Series).median(axis=0).tolist()
+    logger.debug(f"Query vector for {player_name}: {query_vector}")
     return query_vector
 
 
@@ -46,6 +45,9 @@ def search_player_trajectory(player_name: str):
     search_result = client.search(
         collection_name="player_career_trajectory", query_vector=query_vector, limit=5, with_payload=True
     )
+    
+    logger.info(f"Removing duplicate results for player: {player_name}")
+    #search_result = remove_duplicates(search_result) # TODO. see if needed
 
     logger.info(f"Found results: {json.dumps([result.payload for result in search_result], indent=1)}")
     formatted_results = [

@@ -6,9 +6,14 @@ from backend.utils.fuzz_utils import find_top_matches
 from backend.config import settings
 from backend.utils.app_logger import logger
 
-
 def save_parquet_file_locally(df: pd.DataFrame, file_path: str):
     df.to_parquet(file_path, index=False)
+    
+    
+def remove_multiple_seasons(df: pd.DataFrame):
+    df = df.sort_values("SEASON_ID")
+    df = df.drop_duplicates(subset=["PLAYER_ID", "SEASON_ID"], keep="last")
+    return df
 
 
 def fill_missing_values(df: pd.DataFrame):
@@ -46,11 +51,12 @@ def fetch_and_save_player_stats(player_name: str, data_dir: str = "data/players_
         player_stats_df = career.get_data_frames()[0]
         player_stats_df.insert(1, "PLAYER_NAME", player_name)
         player_stats_df = fill_missing_values(player_stats_df)
+        player_stats_df = remove_multiple_seasons(player_stats_df)
         full_player_stats_df = pd.merge(
             player_stats_df,
             calculate_season_stat_averages_per_game(player_stats_df),
             how="left",
-            on=["PLAYER_NAME", "SEASON_ID"],
+            on=["PLAYER_NAME", "SEASON_ID", "TEAM_ID"],
         )
         save_parquet_file_locally(full_player_stats_df, file_path)
         logger.info(f"Data for {player_name} saved to {file_path}.")
@@ -67,7 +73,7 @@ def calculate_season_stat_averages_per_game(player_stats_df: pd.DataFrame):
         per_game_stats[f"{stat}_PER_GAME"] = round(per_game_stats[stat] / per_game_stats["GP"], 1)
 
     per_game_stats = per_game_stats[
-        ["SEASON_ID", "PLAYER_NAME"] + [f"{stat}_PER_GAME" for stat in stat_columns if stat != "GP"]
+        ["SEASON_ID", "PLAYER_NAME", "TEAM_ID"] + [f"{stat}_PER_GAME" for stat in stat_columns if stat != "GP"]
     ]
     return per_game_stats
 
@@ -86,6 +92,7 @@ def fetch_all_players_stats():
 if __name__ == "__main__":
     start_time = pd.Timestamp.now()
     logger.info(f"Starting data fetching process on {start_time}")
-    # fetch_all_players_stats()
-    get_player_stats_from_local_file("LeBron James")
+    fetch_all_players_stats()
+    #get_player_stats_from_local_file("Charles Nash")
+    #fetch_and_save_player_stats("Shareef Abdur-Rahim")
     logger.info(f"Finished data fetching process on {pd.Timestamp.now()} and it took {pd.Timestamp.now() - start_time}")

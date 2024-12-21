@@ -36,3 +36,4 @@ if __name__ == "__main__":
     # fetch_all_collections()
     #search_collection("player_career_trajectory", "kobe bryant")
     search_player_trajectory("kobe bryant")
+    search_player_trajectory("Charles Nash")
