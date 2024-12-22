@@ -1,4 +1,5 @@
 import datetime
+from typing import Collection
 from qdrant_client import QdrantClient
 from backend.src.store_data import process_player_files_in_threads, initialize_qdrant_collection
 from backend.utils.app_logger import logger
@@ -7,6 +8,8 @@ import os
 import time
 
 if __name__ == "__main__":
+    RESET_COLLECTION = True
+    COLLECTION_NAME = "player_career_trajectory"
     start_time = time.time()
     start_datetime = datetime.datetime.now()
     logger.info(f"Starting data fetching process on {start_datetime}")
@@ -17,14 +20,14 @@ if __name__ == "__main__":
     client = QdrantClient(host="localhost", port=6333)
     initialize_qdrant_collection(
         client=client,
-        collection_name="player_career_trajectory",
+        collection_name=COLLECTION_NAME,
         vector_size=settings.VECTOR_SIZE,
-        reset_collection=True,  # True to allow duplication of the data
+        reset_collection=RESET_COLLECTION,  # True to allow duplication of the data
     )
     process_player_files_in_threads(
         client=client,
         file_paths=file_paths,
-        collection_name="player_career_trajectory",
+        collection_name=COLLECTION_NAME,
         max_workers=settings.MAX_THREADING_WORKERS,
     )
     logger.info(
