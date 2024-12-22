@@ -10,7 +10,7 @@ if __name__ == "__main__":
     start_time = time.time()
     start_datetime = datetime.datetime.now()
     logger.info(f"Starting data fetching process on {start_datetime}")
-    folder_path = "data/players_parquet"
+    folder_path = settings.PROCESSED_NBA_DATA_PATH
     logger.info(f"Loading data from {folder_path}")
     file_paths = [os.path.join(folder_path, file_path) for file_path in os.listdir(folder_path)]
     logger.info(f"Found {len(file_paths)} files")

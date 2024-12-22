@@ -1,9 +1,13 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import time
+from datetime import datetime
 import pandas as pd
 import numpy as np
 from backend.config import settings
 from backend.utils.fuzz_utils import find_top_matches
 import os
 from backend.utils.app_logger import logger
+from tqdm import tqdm
 
 
 def fill_missing_values(df: pd.DataFrame):
@@ -142,4 +146,74 @@ def add_advanced_metrics(df: pd.DataFrame):
         0,
     )
 
+    # Calculate Free Throw Rate (FTR)
+    df["FTR"] = np.where(df["FGA"] > 0, df["FTA"] / df["FGA"], 0)
+
+    # Calculate Offensive Rebound Percentage (ORB%)
+    df["ORB%"] = np.where(
+        (df["OREB"] + df["DREB"]) > 0,
+        100 * df["OREB"] / (df["OREB"] + df["DREB"]),
+        0,
+    )
+
+    # Calculate Defensive Rebound Percentage (DRB%)
+    df["DRB%"] = np.where(
+        (df["OREB"] + df["DREB"]) > 0,
+        100 * df["DREB"] / (df["OREB"] + df["DREB"]),
+        0,
+    )
+
+    # Calculate Win Shares per 48 Minutes (WS/48)
+    df["WS/48"] = np.where(
+        (df["GP"] > 0) & (df["MIN"] > 0),
+        (
+            (df["PTS"] + df["AST"] + df["STL"] + df["BLK"])
+            - (df["FGA"] - df["FGM"])
+            - (df["FTA"] - df["FTM"])
+            - df["TOV"]
+        )
+        / (48 * df["GP"]),
+        0,
+    )
+
+    # Calculate Points Responsibility
+    average_points_per_assist = 2.5  # Assumption
+    df["PTS Responsibility"] = df["PTS"] + (df["AST"] * average_points_per_assist)
+
     return df
+
+
+def process_player_metrics_in_parallel(overwrite_all_metrics: bool = False):
+    start_time = time.perf_counter()
+    logger.info(
+        f"Starting to process all players metrics on {datetime.now()} and add them to folder {settings.PROCESSED_NBA_DATA_PATH}"
+    )
+
+    all_raw_files = os.listdir(settings.RAW_NBA_DATA_PATH)
+
+    def process_player_file(file):
+        try:
+            file_path = os.path.join(settings.RAW_NBA_DATA_PATH, file)
+            player_name = file.split("_career_stats.parquet")[0].replace("_", " ")  # Temporary fix
+            df = pd.read_parquet(file_path)
+            add_all_player_metrics_to_parquet(df, player_name, overwrite_all_metrics=overwrite_all_metrics)
+        except Exception as e:
+            logger.error(f"Error processing file {file}: {e}")
+
+    with ThreadPoolExecutor(max_workers=settings.MAX_THREADING_WORKERS) as executor:
+        futures = {
+            executor.submit(process_player_file, file): file
+            for file in all_raw_files
+        }
+        # Wrap the `as_completed` loop with tqdm for progress tracking
+        for future in tqdm(as_completed(futures), total=len(futures), desc="Processing Players", unit="player"):
+            file = futures[future]
+            try:
+                future.result()  # Raise exceptions if they occurred during thread execution
+                logger.info(f"Successfully processed file: {file}")
+            except Exception as e:
+                logger.error(f"Error processing file {file}: {e}")
+
+    logger.info(
+        f"Finished processing all players metrics on {datetime.now()} and it took {time.perf_counter() - start_time:.2f} seconds"
+    )
