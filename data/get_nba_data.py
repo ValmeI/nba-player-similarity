@@ -41,7 +41,7 @@ def fetch_and_save_player_stats(player_name: str):
         raise
 
 
-def fetch_all_players_stats():
+def fetch_all_players_stats_in_threads():
     all_players = players.get_players()
     logger.info(f"Found {len(all_players)} players in NBA. Fetching raw NBA data...")
 

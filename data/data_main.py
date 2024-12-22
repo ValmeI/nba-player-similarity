@@ -1,8 +1,8 @@
 import time
 from datetime import datetime
 from backend.utils.app_logger import logger
-from data.get_nba_data import fetch_all_players_stats
-from data.process_data import process_player_metrics_in_parallel
+from data.get_nba_data import fetch_all_players_stats_in_threads
+from data.process_data import process_player_metrics_in_threads
 import os
 from backend.config import settings
 
@@ -14,7 +14,7 @@ if __name__ == "__main__":
     if FETCH_RAW_DATA_FETCH:
         start_time = time.perf_counter()
         logger.info(f"Starting NBA raw data fetching process on {datetime.now()}")
-        fetch_all_players_stats()
+        fetch_all_players_stats_in_threads()
         logger.info(
             f"Finished NBA raw data fetching process on {datetime.now()} and it took {time.perf_counter() - start_time:.2f} seconds"
         )
@@ -24,4 +24,4 @@ if __name__ == "__main__":
     OWERWRITE_PLAYER_METRICS_IF_EXISTS = True
 
     if PROCESS_ALL_PLAYERS_METRIC and os.path.exists(settings.RAW_NBA_DATA_PATH):
-        process_player_metrics_in_parallel(OWERWRITE_PLAYER_METRICS_IF_EXISTS)
+        process_player_metrics_in_threads(OWERWRITE_PLAYER_METRICS_IF_EXISTS)

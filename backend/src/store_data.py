@@ -5,6 +5,7 @@ from backend.src.player_stats_to_embeddings import create_season_embeddings
 from backend.config import settings
 import pandas as pd
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from tqdm import tqdm
 
 
 def initialize_qdrant_collection(client: QdrantClient, collection_name: str, vector_size: int, reset_collection: bool):
@@ -142,10 +143,10 @@ def process_player_files_in_threads(
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         future_to_file = {executor.submit(worker, file_path): file_path for file_path in file_paths}
 
-        for future in as_completed(future_to_file):
+        for future in tqdm(as_completed(future_to_file), total=len(future_to_file), desc="Storing Players into Qdrant", unit="player"):
             file_path = future_to_file[future]
             try:
-                future.result()  # Raise exceptions if they occurred during thread execution
+                future.result()
                 logger.info(f"Successfully processed file: {file_path}")
             except Exception as e:
                 logger.error(f"Error processing file {file_path}: {e}")

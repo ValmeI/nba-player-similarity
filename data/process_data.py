@@ -183,7 +183,7 @@ def add_advanced_metrics(df: pd.DataFrame):
     return df
 
 
-def process_player_metrics_in_parallel(overwrite_all_metrics: bool = False):
+def process_player_metrics_in_threads(overwrite_all_metrics: bool = False):
     start_time = time.perf_counter()
     logger.info(
         f"Starting to process all players metrics on {datetime.now()} and add them to folder {settings.PROCESSED_NBA_DATA_PATH}"
