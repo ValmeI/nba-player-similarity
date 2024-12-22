@@ -2,9 +2,9 @@ from fastapi import FastAPI, HTTPException
 from qdrant_client import QdrantClient
 from backend.config import settings
 from backend.utils.app_logger import logger
-from backend.src.process_data import create_season_embeddings
-from backend.utils.search_results import remove_duplicates, remove_same_player
-from data.get_nba_data import get_player_stats_from_local_file
+from backend.src.player_stats_to_embeddings import create_season_embeddings
+from backend.utils.search_results import remove_same_player
+from data.process_data import get_player_stats_from_local_file
 import json
 import pandas as pd
 
@@ -23,7 +23,7 @@ def prepare_input_query_vector(player_name: str) -> list:
         list: Query vector representing the player's career trajectory.
     """
     try:
-        player_stats_df = get_player_stats_from_local_file(player_name)
+        player_stats_df = get_player_stats_from_local_file(player_name, settings.PROCESSED_NBA_DATA_PATH)
         logger.debug(f"Player stats for {player_name}: \n{player_stats_df}")
         processed_df = create_season_embeddings(player_stats_df)
         logger.debug(f"Embedded player stats for {player_name}: \n{processed_df}")
@@ -48,9 +48,6 @@ def search_player_trajectory(player_name: str):
         limit=settings.VECTOR_SEARCH_LIMIT,
         with_payload=True,
     )
-
-    # logger.info(f"Removing duplicate results for player: {player_name}")
-    # search_result = remove_duplicates(search_result) # TODO. see if needed
 
     search_result = remove_same_player(search_result, player_name)
     logger.info(f"Found results: {json.dumps([result.payload for result in search_result], indent=1)}")

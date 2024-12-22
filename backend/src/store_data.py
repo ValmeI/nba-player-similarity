@@ -1,7 +1,7 @@
 from qdrant_client import QdrantClient
 from qdrant_client.models import PointStruct
 from backend.utils.app_logger import logger
-from backend.src.process_data import create_season_embeddings
+from backend.src.player_stats_to_embeddings import create_season_embeddings
 from backend.config import settings
 import pandas as pd
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -151,12 +151,3 @@ def process_player_files_in_threads(
                 logger.error(f"Error processing file {file_path}: {e}")
 
     logger.info("All player files processed and stored in Qdrant.")
-
-
-"""
-file_paths = [os.path.join(folder_path, file_path) for file_path in os.listdir(folder_path)]
-process_player_files_in_threads(
-    file_paths=file_paths,
-    collection_name="player_career_trajectory",
-    max_workers=settings.MAX_THREADING_WORKERS,)
-"""
