@@ -1,0 +1,18 @@
+[FORMAT]
+max-line-length=120
+
+[MESSAGES CONTROL]
+disable=
+    missing-module-docstring,
+    missing-function-docstring,
+    missing-class-docstring,
+    invalid-name,
+    broad-exception-raised,
+    not-callable,
+    ungrouped-imports,
+    wrong-import-order,
+    line-too-long,
+    broad-exception-caught,
+    wrong-import-position,
+    dangerous-default-value,
+    trailing-whitespace,
