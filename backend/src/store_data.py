@@ -74,7 +74,7 @@ class QdrantClientWrapper:
             )
             logger.info(f"Upserted player {row['PLAYER_NAME']} of season {row['SEASON_ID']} to the Qdrant collection.")
 
-    def store_player_embeddings_to_qdrant(
+    def store_player_embedding(
         self,
         player_stats_df: pd.DataFrame,
     ):
@@ -96,7 +96,7 @@ class QdrantClientWrapper:
         if player_stats_df.empty:
             logger.warning(f"Empty DataFrame for {file_path}")
             return
-        self.store_player_embeddings_to_qdrant(player_stats_df=player_stats_df)
+        self.store_player_embedding(player_stats_df=player_stats_df)
 
     def process_player_files_in_threads(
         self,
