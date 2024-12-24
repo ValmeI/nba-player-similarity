@@ -1,7 +1,5 @@
 import datetime
-from typing import Collection
-from qdrant_client import QdrantClient
-from backend.src.store_data import process_player_files_in_threads, initialize_qdrant_collection
+from backend.src.store_data import QdrantClientWrapper
 from backend.utils.app_logger import logger
 from backend.config import settings
 import os
@@ -17,17 +15,15 @@ if __name__ == "__main__":
     logger.info(f"Loading data from {folder_path}")
     file_paths = [os.path.join(folder_path, file_path) for file_path in os.listdir(folder_path)]
     logger.info(f"Found {len(file_paths)} files")
-    client = QdrantClient(host="localhost", port=6333)
-    initialize_qdrant_collection(
-        client=client,
-        collection_name=COLLECTION_NAME,
+    qdrant_object = QdrantClientWrapper(
+        host=settings.QDRANT_HOST, port=settings.QDRANT_PORT, collection_name=COLLECTION_NAME
+    )
+    qdrant_object.initialize_qdrant_collection(
         vector_size=settings.VECTOR_SIZE,
         reset_collection=RESET_COLLECTION,  # True to allow duplication of the data
     )
-    process_player_files_in_threads(
-        client=client,
+    qdrant_object.process_player_files_in_threads(
         file_paths=file_paths,
-        collection_name=COLLECTION_NAME,
         max_workers=settings.MAX_THREADING_WORKERS,
     )
     logger.info(

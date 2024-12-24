@@ -201,10 +201,7 @@ def process_player_metrics_in_threads(overwrite_all_metrics: bool = False):
             logger.error(f"Error processing file {file}: {e}")
 
     with ThreadPoolExecutor(max_workers=settings.MAX_THREADING_WORKERS) as executor:
-        futures = {
-            executor.submit(process_player_file, file): file
-            for file in all_raw_files
-        }
+        futures = {executor.submit(process_player_file, file): file for file in all_raw_files}
         # Wrap the `as_completed` loop with tqdm for progress tracking
         for future in tqdm(as_completed(futures), total=len(futures), desc="Processing Players", unit="player"):
             file = futures[future]

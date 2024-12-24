@@ -19,7 +19,7 @@ if __name__ == "__main__":
         logger.info(
             f"Finished NBA raw data fetching process on {datetime.now()} and it took {time.perf_counter() - start_time:.2f} seconds"
         )
-        
+
     if not os.path.exists(settings.RAW_NBA_DATA_PATH):
         logger.error(f"Raw NBA data folder {settings.RAW_NBA_DATA_PATH} does not exist.")
         exit(1)

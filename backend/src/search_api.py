@@ -35,23 +35,8 @@ def prepare_input_query_vector(player_name: str) -> list:
     return query_vector
 
 
-@app.post("/search/")
-def search_player_trajectory(player_name: str):
-    player_name = player_name.lower()
-    logger.info(f'Received search query for player: "{player_name}"')
-
-    query_vector = prepare_input_query_vector(player_name)
-
-    search_result = client.search(
-        collection_name="player_career_trajectory",
-        query_vector=query_vector,
-        limit=settings.VECTOR_SEARCH_LIMIT,
-        with_payload=True,
-    )
-
-    search_result = remove_same_player(search_result, player_name)
-    logger.info(f"Found results: {json.dumps([result.payload for result in search_result], indent=1)}")
-    formatted_results = [
+def format_search_result(search_result: list):
+    return [
         {
             "player_name": result.payload["player_name"],
             "season_id": result.payload["season_id"],
@@ -68,4 +53,21 @@ def search_player_trajectory(player_name: str):
         for result in search_result
     ]
 
-    return formatted_results
+
+@app.post("/search/")
+def search_player_trajectory(player_name: str):
+    player_name = player_name.lower()
+    logger.info(f'Received search query for player: "{player_name}"')
+
+    query_vector = prepare_input_query_vector(player_name)
+
+    search_result = client.search(
+        collection_name="player_career_trajectory",
+        query_vector=query_vector,
+        limit=settings.VECTOR_SEARCH_LIMIT,
+        with_payload=True,
+    )
+
+    search_result = remove_same_player(search_result, player_name)
+    logger.info(f"Found results: {json.dumps([result.payload for result in search_result], indent=1)}")
+    return format_search_result(search_result)
