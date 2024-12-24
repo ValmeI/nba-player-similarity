@@ -34,6 +34,9 @@ def prepare_input_query_vector(player_name: str) -> list:
     logger.debug(f"Query vector for {player_name}: {query_vector}")
     return query_vector
 
+def filter_search_result(search_result: list, score_threshold: float):
+    return [result for result in search_result if result.score > score_threshold]
+
 
 def format_search_result(search_result: list):
     return [
@@ -69,5 +72,6 @@ def search_player_trajectory(player_name: str):
     )
 
     search_result = remove_same_player(search_result, player_name)
+    search_result = filter_search_result(search_result, settings.VECTOR_SEARCH_SCORE_THRESHOLD)
     logger.info(f"Found results: {json.dumps([result.payload for result in search_result], indent=1)}")
     return format_search_result(search_result)

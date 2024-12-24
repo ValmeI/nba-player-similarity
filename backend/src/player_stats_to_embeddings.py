@@ -32,6 +32,24 @@ NEW_NORMALIZED_COLUMNS = [f"NORM_{col}" for col in NUMERIC_COLUMNS]
 METADATA_COLUMNS = ["SEASON_ID", "PLAYER_NAME"]
 
 
+COLUMN_WEIGHTS = {
+    "PTS_PER_GAME": 3,  # Emphasize scoring
+    "TS%": 2,           # Shooting efficiency
+    "PER": 2,           # Player efficiency rating
+    "WS/48": 2,         # Win shares per 48 minutes
+    "AST_PER_GAME": 1.5,  # Playmaking
+    "STL_PER_GAME": 1.5,  # Defense
+    "BLK_PER_GAME": 1.5,  # Defense
+}
+
+# TODO: check if this is needed
+def apply_weights(player_stats_df: pd.DataFrame) -> pd.DataFrame:
+    for column, weight in COLUMN_WEIGHTS.items():
+        if column in player_stats_df.columns:
+            player_stats_df[column] *= weight
+    return player_stats_df
+
+
 def fill_missing_values(player_stats_df: pd.DataFrame) -> pd.DataFrame:
     """
     Fill missing values in numeric columns with 0 as those are really old players
@@ -54,6 +72,7 @@ def create_season_embeddings(player_stats_df: pd.DataFrame) -> pd.DataFrame:
         raise ValueError(f"Missing required columns for processing: {missing_columns}")
 
     player_stats_df = fill_missing_values(player_stats_df)
+    player_stats_df = apply_weights(player_stats_df)
     player_stats_df = normalize_features(player_stats_df)
     player_stats_df["embeddings"] = player_stats_df[NEW_NORMALIZED_COLUMNS].apply(
         lambda row: row.to_numpy().tolist(), axis=1
