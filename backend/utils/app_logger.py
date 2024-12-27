@@ -26,21 +26,29 @@ def setup_loguru_logger() -> None:
         "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>{exception}"
     )
 
-    logger.add(
-        main_log_file_path, rotation="00:00", level=settings.LOG_LEVEL, format=log_format, backtrace=True, diagnose=True
-    )
+    if settings.LOG_TO_FILE:
+        logger.add(
+            main_log_file_path,
+            rotation="00:00",
+            level=settings.LOG_LEVEL,
+            format=log_format,
+            backtrace=True,
+            diagnose=True,
+        )
 
-    logger.add(
-        error_log_file_path,
-        rotation="00:00",
-        level="WARNING",
-        format=log_format,
-        backtrace=True,
-        diagnose=True,
-    )
-
-    # Add console output
-    logger.add(sys.stderr, level=settings.LOG_LEVEL, format=log_format, colorize=True, backtrace=True, diagnose=True)
+    if settings.LOG_ERRORS_TO_SEPARATE_FILE:
+        logger.add(
+            error_log_file_path,
+            rotation="00:00",
+            level="WARNING",
+            format=log_format,
+            backtrace=True,
+            diagnose=True,
+        )
+    if settings.LOG_TO_CONSOLE:
+        logger.add(
+            sys.stderr, level=settings.LOG_LEVEL, format=log_format, colorize=True, backtrace=True, diagnose=True
+        )
 
 
 def handle_exception(

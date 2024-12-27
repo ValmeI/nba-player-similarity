@@ -34,6 +34,7 @@ def prepare_input_query_vector(player_name: str) -> list:
     logger.debug(f"Query vector for {player_name}: {query_vector}")
     return query_vector
 
+
 def filter_search_result(search_result: list, score_threshold: float):
     return [result for result in search_result if result.score > score_threshold]
 

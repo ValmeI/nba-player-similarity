@@ -35,13 +35,14 @@ METADATA_COLUMNS = ["SEASON_ID", "PLAYER_NAME"]
 
 COLUMN_WEIGHTS = {
     "PTS_PER_GAME": 3,  # Emphasize scoring
-    "TS%": 2,           # Shooting efficiency
-    "PER": 2,           # Player efficiency rating
-    "WS/48": 2,         # Win shares per 48 minutes
+    "TS%": 2,  # Shooting efficiency
+    "PER": 2,  # Player efficiency rating
+    "WS/48": 2,  # Win shares per 48 minutes
     "AST_PER_GAME": 1.5,  # Playmaking
     "STL_PER_GAME": 1.5,  # Defense
     "BLK_PER_GAME": 1.5,  # Defense
 }
+
 
 # TODO: check if those two are needed
 def apply_weights(player_stats_df: pd.DataFrame) -> pd.DataFrame:
@@ -54,6 +55,7 @@ def apply_weights(player_stats_df: pd.DataFrame) -> pd.DataFrame:
         if new_normalized_column in player_stats_df.columns:
             player_stats_df[new_normalized_column] *= weight
     return player_stats_df
+
 
 def remove_weight(player_stats_df: pd.DataFrame) -> pd.DataFrame:
     for column, weight in COLUMN_WEIGHTS.items():

@@ -11,3 +11,8 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+
+
+# TODO: Redis player cache?
+# TODO: add async to search api
+# TODO: use yield when processing and reading parquet
