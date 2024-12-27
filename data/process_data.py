@@ -2,7 +2,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
 from datetime import datetime
 import pandas as pd
-import numpy as np
 from backend.config import settings
 from backend.utils.fuzz_utils import find_top_matches
 import os
@@ -59,11 +58,93 @@ def get_player_stats_from_local_file(player_name: str, data_dir: str):
     return pd.read_parquet(file_path)
 
 
+def calculate_career_averages_dask(player_stats_df: pd.DataFrame):
+    career_totals = player_stats_df.sum(numeric_only=True)
+    total_games_played = career_totals["GP"]
+    if total_games_played == 0:
+        logger.warning(f"No games played for {player_stats_df['PLAYER_NAME'].iloc[0]}")
+        return pd.DataFrame()
+
+    # Core per-game stats
+    career_averages = {
+        "PLAYER_NAME": player_stats_df["PLAYER_NAME"].iloc[0],
+        "PLAYER_ID": player_stats_df["PLAYER_ID"].iloc[0],
+        "GP": total_games_played,
+        "GS": career_totals["GS"],
+        "LAST_PLAYED_AGE": player_stats_df["PLAYER_AGE"].iloc[-1],
+        "LAST_PLAYED_SEASON": player_stats_df["SEASON_ID"].iloc[-1],
+        "TOTAL_SEASONS": len(player_stats_df["SEASON_ID"].unique()),
+        "PTS_PER_GAME": career_totals["PTS"] / total_games_played,
+        "REB_PER_GAME": career_totals["REB"] / total_games_played,
+        "AST_PER_GAME": career_totals["AST"] / total_games_played,
+        "STL_PER_GAME": career_totals["STL"] / total_games_played,
+        "BLK_PER_GAME": career_totals["BLK"] / total_games_played,
+        "TOV_PER_GAME": career_totals["TOV"] / total_games_played,
+        "MIN_PER_GAME": career_totals["MIN"] / total_games_played,
+    }
+
+    # Shooting percentages
+    career_averages["FG%"] = career_totals["FGM"] / career_totals["FGA"] if career_totals["FGA"] > 0 else 0
+    career_averages["TS%"] = (
+        career_totals["PTS"] / (2 * (career_totals["FGA"] + 0.44 * career_totals["FTA"]))
+        if (career_totals["FGA"] + 0.44 * career_totals["FTA"]) > 0
+        else 0
+    )
+    career_averages["FT%"] = career_totals["FTM"] / career_totals["FTA"] if career_totals["FTA"] > 0 else 0
+
+    # Advanced metrics
+    career_averages["PER"] = (
+        (
+            career_totals["PTS"]
+            + career_totals["REB"]
+            + career_totals["AST"]
+            + career_totals["STL"]
+            + career_totals["BLK"]
+            - (career_totals["FGA"] - career_totals["FGM"])
+            - (career_totals["FTA"] - career_totals["FTM"])
+            - career_totals["TOV"]
+        )
+        / career_totals["MIN"]
+        if career_totals["MIN"] > 0
+        else 0
+    )
+    career_averages["WS/48"] = (
+        (
+            (career_totals["PTS"] + career_totals["AST"] + career_totals["STL"] + career_totals["BLK"])
+            - (career_totals["FGA"] - career_totals["FGM"])
+            - (career_totals["FTA"] - career_totals["FTM"])
+            - career_totals["TOV"]
+        )
+        / (48 * total_games_played)
+        if total_games_played > 0
+        else 0
+    )
+    career_averages["USG%"] = (
+        100
+        * (career_totals["FGA"] + 0.44 * career_totals["FTA"] + career_totals["TOV"])
+        / (total_games_played * career_totals["MIN"])
+        if career_totals["MIN"] > 0
+        else 0
+    )
+    career_averages["EFG%"] = (
+        (career_totals["FGM"] + 0.5 * career_totals["FG3M"]) / career_totals["FGA"] if career_totals["FGA"] > 0 else 0
+    )
+
+    career_averages["PTS_PER_36"] = (
+        (career_totals["PTS"] / career_totals["MIN"]) * 36 if career_totals["MIN"] > 0 else 0
+    )
+    career_averages["AST_TO_RATIO"] = career_totals["AST"] / career_totals["TOV"] if career_totals["TOV"] > 0 else 0
+    career_averages["STL%"] = (career_totals["STL"] * 100) / career_totals["MIN"] if career_totals["MIN"] > 0 else 0
+    career_averages["BLK%"] = (career_totals["BLK"] * 100) / career_totals["MIN"] if career_totals["MIN"] > 0 else 0
+    career_averages["PTS_RESPONSIBILITY"] = career_totals["PTS"] + (career_totals["AST"] * 2.5)
+
+    return pd.DataFrame([career_averages])
+
+
 def add_all_player_metrics_to_parquet(df: pd.DataFrame, player_name: str, overwrite_all_metrics: bool = False):
     if df.empty:
         logger.warning(f"Empty DataFrame for {player_name}")
         return
-    logger.info(f"Starting to add all player metrics to {player_name}")
     processed_file_path = f"{settings.PROCESSED_NBA_DATA_PATH}/{player_name}_full_player_stats.parquet"
     if not overwrite_all_metrics and os.path.exists(processed_file_path):
         logger.info(f"Processed NBA data for {player_name} already exists, skipping.")
@@ -72,114 +153,14 @@ def add_all_player_metrics_to_parquet(df: pd.DataFrame, player_name: str, overwr
     logger.debug(f"Adding all player metrics to {player_name} with DataFrame: \n{df}")
     df = fill_missing_values(df)
     df = remove_multiple_seasons(df)
-    merged_player_stats_df = pd.merge(
-        df,
-        calculate_season_stat_averages_per_game(df),
-        how="left",
-        on=["PLAYER_NAME", "SEASON_ID", "TEAM_ID"],
-    )
-    logger.debug(f"Adding advanced metrics to {player_name} with DataFrame: \n{merged_player_stats_df}")
-    full_player_stats_df = add_advanced_metrics(merged_player_stats_df)
+    df_career_stats = calculate_career_averages_dask(df).round(1)
     os.makedirs(settings.PROCESSED_NBA_DATA_PATH, exist_ok=True)
-    full_player_stats_df.to_parquet(f"{processed_file_path}", index=False)
+    df_career_stats.to_parquet(f"{processed_file_path}", index=False)
 
 
 def remove_multiple_seasons(df: pd.DataFrame):
     df = df.sort_values("SEASON_ID")
     df = df.drop_duplicates(subset=["PLAYER_ID", "SEASON_ID"], keep="last")
-    return df
-
-"""
-def calculate_season_stat_averages_per_game(player_stats_df: pd.DataFrame):
-    stat_columns = ["PTS", "REB", "OREB", "DREB", "AST", "STL", "BLK", "TOV", "PF", "GP"]
-    if "GP" not in player_stats_df.columns:
-        raise ValueError("The 'GP' column (Games Played) is required to calculate per-game averages.")
-
-    per_game_stats = player_stats_df.copy()
-    for stat in stat_columns:
-        per_game_stats[f"{stat}_PER_GAME"] = round(per_game_stats[stat] / per_game_stats["GP"], 1)
-
-    per_game_stats = per_game_stats[
-        ["SEASON_ID", "PLAYER_NAME", "TEAM_ID"] + [f"{stat}_PER_GAME" for stat in stat_columns if stat != "GP"]
-    ]
-    return per_game_stats
-"""
-
-def add_advanced_metrics(df: pd.DataFrame):
-    """
-    Add advanced basketball metrics to the player stats DataFrame, handling division by zero.
-    """
-    # Safely calculate True Shooting Percentage (TS%)
-    df["TS%"] = np.where((df["FGA"] + 0.44 * df["FTA"]) > 0, df["PTS"] / (2 * (df["FGA"] + 0.44 * df["FTA"])), 0)
-
-    # Safely calculate Player Efficiency Rating (PER) Approximation
-    df["PER"] = np.where(
-        df["MIN"] > 0,
-        (
-            df["PTS"]
-            + df["REB"]
-            + df["AST"]
-            + df["STL"]
-            + df["BLK"]
-            - (df["FGA"] - df["FGM"])
-            - (df["FTA"] - df["FTM"])
-            - df["TOV"]
-        )
-        / df["MIN"],
-        0,
-    )
-
-    # Safely calculate Effective Field Goal Percentage (EFG%)
-    df["EFG%"] = np.where(df["FGA"] > 0, (df["FGM"] + 0.5 * df["FG3M"]) / df["FGA"], 0)
-
-    # Safely calculate Usage Rate (USG%)
-    df["USG%"] = np.where(
-        (df["GP"] * df["MIN"]) > 0,
-        100 * (df["FGA"] + 0.44 * df["FTA"] + df["TOV"]) / (df["GP"] * df["MIN"]),
-        0,
-    )
-
-    # Safely calculate Turnover Percentage (TOV%)
-    df["TOV%"] = np.where(
-        (df["FGA"] + 0.44 * df["FTA"] + df["TOV"]) > 0,
-        100 * df["TOV"] / (df["FGA"] + 0.44 * df["FTA"] + df["TOV"]),
-        0,
-    )
-
-    # Calculate Free Throw Rate (FTR)
-    df["FTR"] = np.where(df["FGA"] > 0, df["FTA"] / df["FGA"], 0)
-
-    # Calculate Offensive Rebound Percentage (ORB%)
-    df["ORB%"] = np.where(
-        (df["OREB"] + df["DREB"]) > 0,
-        100 * df["OREB"] / (df["OREB"] + df["DREB"]),
-        0,
-    )
-
-    # Calculate Defensive Rebound Percentage (DRB%)
-    df["DRB%"] = np.where(
-        (df["OREB"] + df["DREB"]) > 0,
-        100 * df["DREB"] / (df["OREB"] + df["DREB"]),
-        0,
-    )
-
-    # Calculate Win Shares per 48 Minutes (WS/48)
-    df["WS/48"] = np.where(
-        (df["GP"] > 0) & (df["MIN"] > 0),
-        (
-            (df["PTS"] + df["AST"] + df["STL"] + df["BLK"])
-            - (df["FGA"] - df["FGM"])
-            - (df["FTA"] - df["FTM"])
-            - df["TOV"]
-        )
-        / (48 * df["GP"]),
-        0,
-    )
-
-    # Calculate Points Responsibility
-    average_points_per_assist = 2.5  # Assumption
-    df["PTS Responsibility"] = df["PTS"] + (df["AST"] * average_points_per_assist)
-
     return df
 
 
@@ -207,10 +188,10 @@ def process_player_metrics_in_threads(overwrite_all_metrics: bool = False):
             file = futures[future]
             try:
                 future.result()  # Raise exceptions if they occurred during thread execution
-                logger.info(f"Successfully processed file: {file}")
+                logger.debug(f"Successfully processed file: {file}")
             except Exception as e:
                 logger.error(f"Error processing file {file}: {e}")
 
     logger.info(
-        f"Finished processing all players metrics on {datetime.now()} and it took {time.perf_counter() - start_time:.2f} seconds"
+        f"Finished processing all players metrics on {datetime.now()} and it took {round((time.perf_counter() - start_time) / 60, 2)} minutes"
     )

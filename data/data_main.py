@@ -10,7 +10,7 @@ from backend.config import settings
 if __name__ == "__main__":
     print("Starting data fetching process...")
     # NB! Next part is about fetching all players raw data
-    FETCH_RAW_DATA_FETCH = True
+    FETCH_RAW_DATA_FETCH = False
 
     if FETCH_RAW_DATA_FETCH:
         start_time = time.perf_counter()

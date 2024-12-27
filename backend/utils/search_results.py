@@ -25,10 +25,7 @@ def format_search_result(search_result: list):
 
 
 def format_logger_search_result(search_result: list):
-    logger_results = [
-        {**result.payload, "similarity_score": result.score}
-        for result in search_result
-    ]
+    logger_results = [{**result.payload, "similarity_score": result.score} for result in search_result]
     return json.dumps(logger_results, indent=1)
 
 
