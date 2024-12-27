@@ -3,9 +3,13 @@ from qdrant_client import QdrantClient
 from backend.config import settings
 from backend.utils.app_logger import logger
 from backend.src.player_stats_to_embeddings import create_season_embeddings
-from backend.utils.search_results import remove_same_player
+from backend.utils.search_results import (
+    remove_same_player,
+    filter_search_result,
+    format_logger_search_result,
+    format_search_result,
+)
 from data.process_data import get_player_stats_from_local_file
-import json
 import pandas as pd
 
 app = FastAPI()
@@ -35,29 +39,6 @@ def prepare_input_query_vector(player_name: str) -> list:
     return query_vector
 
 
-def filter_search_result(search_result: list, score_threshold: float):
-    return [result for result in search_result if result.score > score_threshold]
-
-
-def format_search_result(search_result: list):
-    return [
-        {
-            "player_name": result.payload["player_name"],
-            "season_id": result.payload["season_id"],
-            "points_per_game": result.payload.get("points_per_game"),
-            "offensive_rebounds_per_game": result.payload.get("offensive_rebounds_per_game"),
-            "defensive_rebounds_per_game": result.payload.get("defensive_rebounds_per_game"),
-            "steals_per_game": result.payload.get("steals_per_game"),
-            "assists_per_game": result.payload.get("assists_per_game"),
-            "blocks_per_game": result.payload.get("blocks_per_game"),
-            "turnovers_per_game": result.payload.get("turnovers_per_game"),
-            "personal_fouls_per_game": result.payload.get("personal_fouls_per_game"),
-            "similarity_score": result.score,
-        }
-        for result in search_result
-    ]
-
-
 @app.post("/search/")
 def search_player_trajectory(player_name: str):
     player_name = player_name.lower()
@@ -74,5 +55,6 @@ def search_player_trajectory(player_name: str):
 
     search_result = remove_same_player(search_result, player_name)
     search_result = filter_search_result(search_result, settings.VECTOR_SEARCH_SCORE_THRESHOLD)
-    logger.info(f"Found results: {json.dumps([result.payload for result in search_result], indent=1)}")
+
+    logger.info(f"Found results: {format_logger_search_result(search_result)}")
     return format_search_result(search_result)

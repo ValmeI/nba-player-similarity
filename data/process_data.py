@@ -89,7 +89,7 @@ def remove_multiple_seasons(df: pd.DataFrame):
     df = df.drop_duplicates(subset=["PLAYER_ID", "SEASON_ID"], keep="last")
     return df
 
-
+"""
 def calculate_season_stat_averages_per_game(player_stats_df: pd.DataFrame):
     stat_columns = ["PTS", "REB", "OREB", "DREB", "AST", "STL", "BLK", "TOV", "PF", "GP"]
     if "GP" not in player_stats_df.columns:
@@ -103,7 +103,7 @@ def calculate_season_stat_averages_per_game(player_stats_df: pd.DataFrame):
         ["SEASON_ID", "PLAYER_NAME", "TEAM_ID"] + [f"{stat}_PER_GAME" for stat in stat_columns if stat != "GP"]
     ]
     return per_game_stats
-
+"""
 
 def add_advanced_metrics(df: pd.DataFrame):
     """
