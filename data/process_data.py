@@ -145,7 +145,9 @@ def add_all_player_metrics_to_parquet(df: pd.DataFrame, player_name: str, overwr
     if df.empty:
         logger.warning(f"Empty DataFrame for {player_name}")
         return
-    processed_file_path = f"{settings.PROCESSED_NBA_DATA_PATH}/{player_name}_full_player_stats.parquet"
+    processed_file_path = (
+        f"{settings.PROCESSED_NBA_DATA_PATH}/{player_name.replace(' ', '_')}_full_player_stats.parquet"
+    )
     if not overwrite_all_metrics and os.path.exists(processed_file_path):
         logger.info(f"Processed NBA data for {player_name} already exists, skipping.")
         return

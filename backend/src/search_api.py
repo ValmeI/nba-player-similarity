@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from qdrant_client import QdrantClient
 from backend.config import settings
 from backend.utils.app_logger import logger
-from backend.src.player_stats_to_embeddings import create_season_embeddings
+from backend.src.player_stats_to_embeddings import create_player_embeddings
 from backend.utils.search_results import (
     remove_same_player,
     filter_search_result,
@@ -29,7 +29,7 @@ def prepare_input_query_vector(player_name: str) -> list:
     try:
         player_stats_df = get_player_stats_from_local_file(player_name, settings.PROCESSED_NBA_DATA_PATH)
         logger.debug(f"Player stats for {player_name}: \n{player_stats_df}")
-        processed_df = create_season_embeddings(player_stats_df)
+        processed_df = create_player_embeddings(player_stats_df)
         logger.debug(f"Embedded player stats for {player_name}: \n{processed_df}")
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
@@ -53,8 +53,8 @@ def search_player_trajectory(player_name: str):
         with_payload=True,
     )
 
-    search_result = remove_same_player(search_result, player_name)
-    search_result = filter_search_result(search_result, settings.VECTOR_SEARCH_SCORE_THRESHOLD)
+    # search_result = remove_same_player(search_result, player_name)
+    # search_result = filter_search_result(search_result, settings.VECTOR_SEARCH_SCORE_THRESHOLD)
 
     logger.info(f"Found results: {format_logger_search_result(search_result)}")
     return format_search_result(search_result)

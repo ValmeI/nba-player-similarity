@@ -1,4 +1,5 @@
 import json
+from backend.utils.app_logger import logger
 
 
 def filter_search_result(search_result: list, score_threshold: float):
@@ -8,16 +9,29 @@ def filter_search_result(search_result: list, score_threshold: float):
 def format_search_result(search_result: list):
     return [
         {
-            "player_name": result.payload["player_name"],
-            "season_id": result.payload["season_id"],
-            "points_per_game": result.payload.get("points_per_game"),
-            "offensive_rebounds_per_game": result.payload.get("offensive_rebounds_per_game"),
-            "defensive_rebounds_per_game": result.payload.get("defensive_rebounds_per_game"),
-            "steals_per_game": result.payload.get("steals_per_game"),
-            "assists_per_game": result.payload.get("assists_per_game"),
-            "blocks_per_game": result.payload.get("blocks_per_game"),
-            "turnovers_per_game": result.payload.get("turnovers_per_game"),
-            "personal_fouls_per_game": result.payload.get("personal_fouls_per_game"),
+            "player_name": result.payload["PLAYER_NAME"],
+            "games_played": result.payload.get("GP"),
+            "games_started": result.payload.get("GS"),
+            "last_played_age": result.payload.get("LAST_PLAYED_AGE"),
+            "last_played_season": result.payload.get("LAST_PLAYED_SEASON"),
+            "total_seasons": result.payload.get("TOTAL_SEASONS"),
+            "points_per_game": result.payload.get("PTS_PER_GAME"),
+            "rebounds_per_game": result.payload.get("REB_PER_GAME"),
+            "assists_per_game": result.payload.get("AST_PER_GAME"),
+            "steals_per_game": result.payload.get("STL_PER_GAME"),
+            "blocks_per_game": result.payload.get("BLK_PER_GAME"),
+            "turnovers_per_game": result.payload.get("TOV_PER_GAME"),
+            "minutes_per_game": result.payload.get("MIN_PER_GAME"),
+            "true_shooting_percentage": result.payload.get("TS%"),
+            "effective_field_goal_percentage": result.payload.get("EFG%"),
+            "player_efficiency_rating": result.payload.get("PER"),
+            "win_shares_per_48": result.payload.get("WS/48"),
+            "usage_rate": result.payload.get("USG%"),
+            "points_per_36": result.payload.get("PTS_PER_36"),
+            "assist_turnover_ratio": result.payload.get("AST_TO_RATIO"),
+            "steal_percentage": result.payload.get("STL%"),
+            "block_percentage": result.payload.get("BLK%"),
+            "points_responsibility": result.payload.get("PTS_RESPONSIBILITY"),
             "similarity_score": result.score,
         }
         for result in search_result
@@ -29,16 +43,6 @@ def format_logger_search_result(search_result: list):
     return json.dumps(logger_results, indent=1)
 
 
-def remove_duplicates(search_results: list):
-    seen_combinations = set()
-    unique_results = []
-    for result in search_results:
-        key = (result.payload["player_name"], result.payload["season_id"])
-        if key not in seen_combinations:
-            unique_results.append(result)
-            seen_combinations.add(key)
-    return unique_results
-
-
 def remove_same_player(search_results: list, player_name: str):
-    return [result for result in search_results if result.payload["player_name"].lower() != player_name]
+    logger.debug(f"Removing same player: {player_name} from search results {search_results}")
+    return [result for result in search_results if result.payload["PLAYER_NAME"].lower() != player_name]

@@ -19,6 +19,7 @@ class Settings:
     LOG_TO_FILE: bool = str_to_bool(os.getenv("LOG_TO_FILE"))
     LOG_TO_CONSOLE: bool = str_to_bool(os.getenv("LOG_TO_CONSOLE"))
     LOG_ERRORS_TO_SEPARATE_FILE: bool = str_to_bool(os.getenv("LOG_ERRORS_TO_SEPARATE_FILE"))
+    COLLECTION_NAME: str = os.getenv("COLLECTION_NAME")
     VECTOR_DISTANCE_METRIC: str = os.getenv("VECTOR_DISTANCE_METRIC")
     VECTOR_SEARCH_LIMIT: int = int(os.getenv("VECTOR_SEARCH_LIMIT"))
     VECTOR_SEARCH_SCORE_THRESHOLD: float = float(os.getenv("VECTOR_SEARCH_SCORE_THRESHOLD"))
