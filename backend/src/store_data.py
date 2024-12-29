@@ -2,10 +2,9 @@ import uuid
 from qdrant_client import QdrantClient
 from qdrant_client.models import PointStruct
 from backend.utils.app_logger import logger
-from backend.src.player_stats_to_embeddings import create_player_embeddings
+from backend.src.player_stats_to_embeddings import create_players_embeddings
 from backend.config import settings
 import pandas as pd
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm import tqdm
 
 
@@ -15,6 +14,12 @@ class QdrantClientWrapper:
         self.port = port
         self.client = QdrantClient(host=self.host, port=self.port)
         self.collection_name = collection_name
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.client.close()
 
     def initialize_qdrant_collection(self, vector_size: int, reset_collection: bool):
 
@@ -39,8 +44,8 @@ class QdrantClientWrapper:
         )
 
     def upsert_players_data_to_qdrant(self, all_players_df: pd.DataFrame):
-       
-        for _, row in all_players_df.iterrows():
+
+        for _, row in tqdm(all_players_df.iterrows(), desc="Upserting players to Qdrant"):
             # Convert metadata values to native Python types to avoid error "Unable to serialize unknown type: <class 'numpy.int64'>"
             metadata = {
                 "PLAYER_NAME": str(row["PLAYER_NAME"]),
@@ -79,57 +84,28 @@ class QdrantClientWrapper:
                     )
                 ],
             )
-            logger.info(
-                f"Upserted player {row['PLAYER_NAME']} embedding and metadata with PLAYER_ID: {row['PLAYER_ID']} to Qdrant."
-            )
+        logger.info(f"Upserted {len(all_players_df)} players to Qdrant.")
 
-    def store_player_embedding(
+    def store_players_embedding(
         self,
-        player_stats_df: pd.DataFrame,
+        players_stats_df: pd.DataFrame,
     ):
-
-        player_name = player_stats_df.iloc[0]["PLAYER_NAME"]
-        logger.debug(f"Processing player '{player_name}' for embeddings and metadata...")
-        processed_df = create_player_embeddings(player_stats_df)
+        logger.debug(f"Processing players list of length {len(players_stats_df)} for embeddings and metadata...")
+        processed_df = create_players_embeddings(players_stats_df)
         self.upsert_players_data_to_qdrant(processed_df)
 
-    def _process_player_file(self, file_path: str):
-        """
-        Process a single player's file and store embeddings in Qdrant.
-        """
-        player_stats_df = pd.read_parquet(file_path)
-        if player_stats_df.empty:
-            logger.warning(f"Empty DataFrame for {file_path}")
-            return
-        self.store_player_embedding(player_stats_df=player_stats_df)
-
-    def process_player_files_in_threads(
-        self,
-        file_paths: list,
-        max_workers=10,
-    ):
-
+    def process_players_files(self, file_paths: list):
         if len(file_paths) == 0:
-            logger.error("No player files found.")
+            logger.error("No players files found.")
             return
 
-        logger.info("Starting processing of player files...")
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            future_to_file = {
-                executor.submit(self._process_player_file, file_path): file_path for file_path in file_paths
-            }
-
-            for future in tqdm(
-                as_completed(future_to_file),
-                total=len(future_to_file),
-                desc="Storing Players into Qdrant",
-                unit="player",
-            ):
-                file_path = future_to_file[future]
-                try:
-                    future.result()
-                    logger.debug(f"Successfully processed file: {file_path}")
-                except Exception as e:
-                    logger.error(f"Error processing file {file_path}: {e}")
-
-        logger.info("All player files processed and stored in Qdrant.")
+        logger.info("Starting processing players files...")
+        try:
+            # Concatenate all players data into a single DataFrame
+            players_stats_df = pd.concat(
+                [pd.read_parquet(file_path) for file_path in tqdm(file_paths, desc="Processing files")]
+            )
+            self.store_players_embedding(players_stats_df=players_stats_df)
+            logger.info("All players data processed and stored in Qdrant.")
+        except Exception as e:
+            logger.error(f"Error processing players files: {e}")

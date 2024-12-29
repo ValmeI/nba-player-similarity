@@ -43,16 +43,9 @@ if __name__ == "__main__":
     # search_collection("player_career_trajectory", "kobe bryant")
     # search_player_trajectory("kobe bryant")
     # search_player_trajectory("Charles Nash")
-    #search_player_trajectory("Larry Sykes")
-    file_paths = [
-        "nba_data/processed_parquet_files/Kobe_Bryant_full_player_stats.parquet"
-    ]
-    qdrant_object = QdrantClientWrapper(
+    # search_player_trajectory("Larry Sykes")
+    file_paths = ["nba_data/processed_parquet_files/Kobe_Bryant_full_player_stats.parquet"]
+    with QdrantClientWrapper(
         host=settings.QDRANT_HOST, port=settings.QDRANT_PORT, collection_name=settings.COLLECTION_NAME
-    )
-    qdrant_object.process_player_files_in_threads(
-        file_paths=file_paths,
-        max_workers=settings.MAX_THREADING_WORKERS,
-    )
-        
-    
+    ) as qdrant_object:
+        qdrant_object.process_players_files(file_paths=file_paths)

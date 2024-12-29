@@ -1,6 +1,7 @@
 import pandas as pd
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import RobustScaler
 from backend.utils.app_logger import logger
+from tqdm import tqdm
 
 pd.set_option("future.no_silent_downcasting", True)
 
@@ -31,38 +32,52 @@ NUMERIC_COLUMNS = [
 ]
 
 
-# Define the normalized columns as we want to keep original columns aslo
+# Define the normalized columns as we want to keep original columns also
 NORMALIZED_COLUMN_PREFIX = "NORM_"
 TO_NORMALIZED_COLUMNS = [f"{NORMALIZED_COLUMN_PREFIX}{col}" for col in NUMERIC_COLUMNS]
 
 
-def fill_missing_values(player_stats_df: pd.DataFrame) -> pd.DataFrame:
+def fill_missing_values(players_stats_df: pd.DataFrame) -> pd.DataFrame:
     """
     Fill missing values in numeric columns with 0 as those are really old players
     """
-    player_stats_df[NUMERIC_COLUMNS] = player_stats_df[NUMERIC_COLUMNS].fillna(0)
-    return player_stats_df
+    players_stats_df[NUMERIC_COLUMNS] = players_stats_df[NUMERIC_COLUMNS].fillna(0)
+    return players_stats_df
 
 
-def normalize_features(player_stats_df: pd.DataFrame) -> pd.DataFrame:
-    scaler = StandardScaler()
-    # to keep original columns aslo, so we could return those to user after
-    player_stats_df[TO_NORMALIZED_COLUMNS] = scaler.fit_transform(player_stats_df[NUMERIC_COLUMNS])
-    logger.debug(f"Normalized numeric data:\n{player_stats_df[TO_NORMALIZED_COLUMNS]}")
-    return player_stats_df
+def normalize_features(players_stats_df: pd.DataFrame) -> pd.DataFrame:
+    
+    result_df = players_stats_df.copy()
+    scaler = RobustScaler()
+    
+    normalized_data = scaler.fit_transform(players_stats_df[NUMERIC_COLUMNS])
+    
+    # Add all normalized columns at once using a new DataFrame
+    normalized_df = pd.DataFrame(
+        normalized_data,
+        columns=[f'NORM_{col}' for col in NUMERIC_COLUMNS],
+        index=players_stats_df.index
+    )
+    
+    result_df = pd.concat([result_df, normalized_df], axis=1)
+
+    logger.debug(f"Raw career stats before normalization:\n{players_stats_df[NUMERIC_COLUMNS]}")
+    logger.debug(f"Normalized career stats:\n{result_df[[f'NORM_{col}' for col in NUMERIC_COLUMNS]]}")
+    
+    return result_df
 
 
-def create_player_embeddings(player_stats_df: pd.DataFrame) -> pd.DataFrame:
-    logger.debug(f"Raw numeric data before normalization:\n{player_stats_df[NUMERIC_COLUMNS]}")
-    missing_columns = [col for col in NUMERIC_COLUMNS if col not in player_stats_df.columns]
+def create_players_embeddings(players_stats_df: pd.DataFrame) -> pd.DataFrame:
+    logger.debug(f"Raw numeric data before normalization:\n{players_stats_df[NUMERIC_COLUMNS]}")
+    missing_columns = [col for col in NUMERIC_COLUMNS if col not in players_stats_df.columns]
 
     if missing_columns:
         raise ValueError(f"Missing required columns for processing: {missing_columns}")
 
-    player_stats_df = fill_missing_values(player_stats_df)
-    player_stats_df = normalize_features(player_stats_df)
-    player_stats_df["embeddings"] = player_stats_df[TO_NORMALIZED_COLUMNS].apply(
+    players_stats_df = fill_missing_values(players_stats_df)
+    players_stats_df = normalize_features(players_stats_df)
+    players_stats_df["embeddings"] = players_stats_df[TO_NORMALIZED_COLUMNS].apply(
         lambda row: row.to_numpy().tolist(), axis=1
     )
-    logger.debug(f"Created embeddings for player {player_stats_df.iloc[0]['PLAYER_NAME']} with data: {player_stats_df}")
-    return player_stats_df[METADATA_COLUMNS + ["embeddings"] + NUMERIC_COLUMNS]
+    logger.debug(f"Created embeddings for players list of length {len(players_stats_df)}")
+    return players_stats_df[METADATA_COLUMNS + ["embeddings"] + NUMERIC_COLUMNS]

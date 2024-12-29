@@ -15,17 +15,14 @@ if __name__ == "__main__":
     logger.info(f"Loading data from {folder_path}")
     file_paths = [os.path.join(folder_path, file_path) for file_path in os.listdir(folder_path)]
     logger.info(f"Found {len(file_paths)} files")
-    qdrant_object = QdrantClientWrapper(
+    with QdrantClientWrapper(
         host=settings.QDRANT_HOST, port=settings.QDRANT_PORT, collection_name=COLLECTION_NAME
-    )
-    qdrant_object.initialize_qdrant_collection(
-        vector_size=settings.VECTOR_SIZE,
-        reset_collection=RESET_COLLECTION,  # True to allow duplication of the data
-    )
-    qdrant_object.process_player_files_in_threads(
-        file_paths=file_paths,
-        max_workers=settings.MAX_THREADING_WORKERS,
-    )
-    logger.info(
-        f"Finished data fetching process on {datetime.datetime.now()} and it took in minutes {round((time.time() - start_time) / 60, 2)}"
-    )
+    ) as qdrant_object:
+        qdrant_object.initialize_qdrant_collection(
+            vector_size=settings.VECTOR_SIZE,
+            reset_collection=RESET_COLLECTION,  # True to allow duplication of the data
+        )
+        qdrant_object.process_players_files(file_paths=file_paths)
+        logger.info(
+            f"Finished data fetching process on {datetime.datetime.now()} and it took in minutes {round((time.time() - start_time) / 60, 2)}"
+        )
