@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from qdrant_client import QdrantClient
 from backend.config import settings
 from backend.utils.app_logger import logger
-from backend.src.embeddings import PlayerEmbeddings
+from data.process_data import fetch_all_players_from_local_files
 from backend.utils.search_results import (
     remove_same_player,
     filter_search_result,
@@ -10,7 +10,7 @@ from backend.utils.search_results import (
     format_search_result,
 )
 from data.process_data import fetch_player_stats_from_local_file
-import pandas as pd
+
 
 app = FastAPI()
 client = QdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT)
@@ -27,18 +27,18 @@ def prepare_input_query_vector(player_name: str) -> list:
         list: Query vector representing the player's career trajectory.
     """
     try:
-        player_stats_df = fetch_player_stats_from_local_file(player_name, settings.PROCESSED_NBA_DATA_PATH)
+        player_stats_df = fetch_all_players_from_local_files(settings.EMBEDDED_NBA_DATA_PATH)
+        print(player_stats_df)
         logger.debug(f"Player stats for {player_name}: \n{player_stats_df}")
-        embeddings_creator = PlayerEmbeddings(player_stats_df)
-        processed_df = embeddings_creator.create_players_embeddings()
-        logger.debug(f"Embedded player stats for {player_name}: \n{processed_df}")
-    except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from e
-
-    query_vector = processed_df["embeddings"].apply(pd.Series).median(axis=0).tolist()
-    logger.debug(f"Query vector for {player_name}: {query_vector}")
-    return query_vector
-
+        player_embedding = fetch_all_players_from_local_files(settings.EMBEDDED_NBA_DATA_PATH).query(
+            f"PLAYER_NAME.str.lower() == '{player_name}'"
+        )
+        logger.debug(f"Player embedding for {player_name}: \n{player_embedding}")
+        query_vector = player_embedding["embeddings"].tolist()
+        return query_vector
+    except Exception as e:
+        logger.error(f"Error processing player stats for {player_name}: {e}")
+        return None
 
 @app.post("/search/")
 def search_player_trajectory(player_name: str):

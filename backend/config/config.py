@@ -28,7 +28,7 @@ class Settings:
     FUZZ_THRESHOLD: int = int(os.getenv("FUZZ_THRESHOLD"))
     RAW_NBA_DATA_PATH: str = str(os.getenv("RAW_NBA_DATA_PATH"))
     PROCESSED_NBA_DATA_PATH: str = str(os.getenv("PROCESSED_NBA_DATA_PATH"))
-    EMBEDDINGS_NBA_DATA_PATH: str = str(os.getenv("EMBEDDINGS_NBA_DATA_PATH"))
+    EMBEDDED_NBA_DATA_PATH: str = str(os.getenv("EMBEDDED_NBA_DATA_PATH"))
 
 
 settings = Settings()

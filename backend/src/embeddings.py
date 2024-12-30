@@ -1,7 +1,8 @@
 import pandas as pd
 from sklearn.preprocessing import RobustScaler
 from backend.utils.app_logger import logger
-
+from backend.config import settings
+import os
 pd.set_option("future.no_silent_downcasting", True)
 
 
@@ -82,5 +83,6 @@ class PlayerEmbeddings:
             lambda row: row.to_numpy().tolist(), axis=1
         )
         logger.debug(f"Created embeddings for players list of length {len(self.players_stats_df)}")
+        os.makedirs(settings.EMBEDDED_NBA_DATA_PATH, exist_ok=True)
+        self.players_stats_df.to_parquet(f"{settings.EMBEDDED_NBA_DATA_PATH}/all_players_embeddings.parquet")
         return self.players_stats_df[METADATA_COLUMNS + ["embeddings"] + NUMERIC_COLUMNS + TO_NORMALIZED_COLUMNS]
-
