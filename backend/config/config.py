@@ -26,8 +26,9 @@ class Settings:
     VECTOR_SIZE: int = int(os.getenv("VECTOR_SIZE"))
     MAX_THREADING_WORKERS: int = int(os.getenv("MAX_THREADING_WORKERS"))
     FUZZ_THRESHOLD: int = int(os.getenv("FUZZ_THRESHOLD"))
-    RAW_NBA_DATA_PATH: str = os.getenv("RAW_NBA_DATA_PATH")
-    PROCESSED_NBA_DATA_PATH: str = os.getenv("PROCESSED_NBA_DATA_PATH")
+    RAW_NBA_DATA_PATH: str = str(os.getenv("RAW_NBA_DATA_PATH"))
+    PROCESSED_NBA_DATA_PATH: str = str(os.getenv("PROCESSED_NBA_DATA_PATH"))
+    EMBEDDINGS_NBA_DATA_PATH: str = str(os.getenv("EMBEDDINGS_NBA_DATA_PATH"))
 
 
 settings = Settings()

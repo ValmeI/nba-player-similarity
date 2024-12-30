@@ -2,14 +2,14 @@ from fastapi import FastAPI, HTTPException
 from qdrant_client import QdrantClient
 from backend.config import settings
 from backend.utils.app_logger import logger
-from backend.src.player_stats_to_embeddings import create_players_embeddings
+from backend.src.embeddings import create_players_embeddings
 from backend.utils.search_results import (
     remove_same_player,
     filter_search_result,
     format_logger_search_result,
     format_search_result,
 )
-from data.process_data import get_player_stats_from_local_file
+from data.process_data import fetch_player_stats_from_local_file
 import pandas as pd
 
 app = FastAPI()
@@ -27,7 +27,7 @@ def prepare_input_query_vector(player_name: str) -> list:
         list: Query vector representing the player's career trajectory.
     """
     try:
-        player_stats_df = get_player_stats_from_local_file(player_name, settings.PROCESSED_NBA_DATA_PATH)
+        player_stats_df = fetch_player_stats_from_local_file(player_name, settings.PROCESSED_NBA_DATA_PATH)
         logger.debug(f"Player stats for {player_name}: \n{player_stats_df}")
         processed_df = create_players_embeddings(player_stats_df)
         logger.debug(f"Embedded player stats for {player_name}: \n{processed_df}")

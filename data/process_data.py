@@ -51,11 +51,28 @@ def fill_missing_values(df: pd.DataFrame):
     return df
 
 
-def get_player_stats_from_local_file(player_name: str, data_dir: str):
+def fetch_player_stats_from_local_file(player_name: str, data_dir: str):
     all_files = os.listdir(data_dir)
     best_match_file_name = find_top_matches(player_name, all_files, settings.FUZZ_THRESHOLD)
     file_path = os.path.join(data_dir, best_match_file_name)
     return pd.read_parquet(file_path)
+
+
+def fetch_all_players_from_local_files(data_dir: str):
+    all_files = [os.path.join(data_dir, file) for file in os.listdir(data_dir)]
+    logger.info(f"Fetching all players from {data_dir} with {len(all_files)} files")
+    # not using list comprehension because it's hard to debug which file is causing the errors
+    players_stats_df_list = []
+    try:
+        for file_path in tqdm(all_files, desc="Processing files"):
+            logger.debug(f"Reading file: {file_path}")
+            players_stats_df_list.append(pd.read_parquet(file_path))
+
+        all_players_df = pd.concat(players_stats_df_list)
+        return all_players_df
+    except Exception as e:
+        logger.error(f"Error processing players files: {e}")
+        return None
 
 
 def calculate_career_averages_dask(player_stats_df: pd.DataFrame):

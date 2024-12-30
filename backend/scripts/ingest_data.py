@@ -1,8 +1,7 @@
 import datetime
-from backend.src.store_data import QdrantClientWrapper
+from backend.src.qdrant_wrapper import QdrantClientWrapper
 from backend.utils.app_logger import logger
 from backend.config import settings
-import os
 import time
 
 if __name__ == "__main__":
@@ -13,8 +12,6 @@ if __name__ == "__main__":
     logger.info(f"Starting data fetching process on {start_datetime}")
     folder_path = settings.PROCESSED_NBA_DATA_PATH
     logger.info(f"Loading data from {folder_path}")
-    file_paths = [os.path.join(folder_path, file_path) for file_path in os.listdir(folder_path)]
-    logger.info(f"Found {len(file_paths)} files")
     with QdrantClientWrapper(
         host=settings.QDRANT_HOST, port=settings.QDRANT_PORT, collection_name=COLLECTION_NAME
     ) as qdrant_object:
@@ -22,7 +19,7 @@ if __name__ == "__main__":
             vector_size=settings.VECTOR_SIZE,
             reset_collection=RESET_COLLECTION,  # True to allow duplication of the data
         )
-        qdrant_object.process_players_files(file_paths=file_paths)
+        qdrant_object.store_players_embedding(data_dir=folder_path)
         logger.info(
             f"Finished data fetching process on {datetime.datetime.now()} and it took in minutes {round((time.time() - start_time) / 60, 2)}"
         )

@@ -1,12 +1,12 @@
 from qdrant_client import QdrantClient
 from backend.src.search_api import prepare_input_query_vector, search_player_trajectory
 from backend.utils.app_logger import logger
-from backend.src.store_data import QdrantClientWrapper
+from backend.src.qdrant_wrapper import QdrantClientWrapper
 from backend.config import settings
 import json
 
 
-def delete_collection(collection_name: str, host: str = "localhost", port: int = 6333):
+def delete_collection(collection_name: str, host: str, port: int):
     client = QdrantClient(host=host, port=port)
     collections = [c.name for c in client.get_collections().collections]
     print("Existing collections:", collections)
@@ -16,14 +16,14 @@ def delete_collection(collection_name: str, host: str = "localhost", port: int =
     print("Collections after deletion:", [c.name for c in client.get_collections().collections])
 
 
-def fetch_all_collections(host: str = "localhost", port: int = 6333):
+def fetch_all_collections(host: str, port: int):
     client = QdrantClient(host=host, port=port)
     collections = [c.name for c in client.get_collections().collections]
     print("Existing collections:", collections)
     return collections
 
 
-def search_collection(collection_name: str, query: str, host: str = "localhost", port: int = 6333):
+def search_collection(collection_name: str, query: str, host: str, port: int):
     client = QdrantClient(host=host, port=port)
     query_vector = prepare_input_query_vector(query)
     logger.info(f"Query vector: {query_vector}")

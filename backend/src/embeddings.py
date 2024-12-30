@@ -1,12 +1,11 @@
 import pandas as pd
 from sklearn.preprocessing import RobustScaler
 from backend.utils.app_logger import logger
-from tqdm import tqdm
 
 pd.set_option("future.no_silent_downcasting", True)
 
 
-METADATA_COLUMNS = ["PLAYER_NAME", "PLAYER_ID"]
+METADATA_COLUMNS = ["PLAYER_NAME", "PLAYER_ID", "LAST_PLAYED_SEASON"]
 
 # Define the numeric columns for embedding
 NUMERIC_COLUMNS = [
@@ -29,6 +28,10 @@ NUMERIC_COLUMNS = [
     "STL%",  # Steal percentage
     "BLK%",  # Block percentage
     "PTS_RESPONSIBILITY",  # Points responsibility
+    "LAST_PLAYED_AGE",  # Age when the player last played
+    "TOTAL_SEASONS",  # Total number of seasons played
+    "GP",  # Games Played
+    "GS",  # Games Started
 ]
 
 
@@ -46,24 +49,22 @@ def fill_missing_values(players_stats_df: pd.DataFrame) -> pd.DataFrame:
 
 
 def normalize_features(players_stats_df: pd.DataFrame) -> pd.DataFrame:
-    
+
     result_df = players_stats_df.copy()
     scaler = RobustScaler()
-    
+
     normalized_data = scaler.fit_transform(players_stats_df[NUMERIC_COLUMNS])
-    
+
     # Add all normalized columns at once using a new DataFrame
     normalized_df = pd.DataFrame(
-        normalized_data,
-        columns=[f'NORM_{col}' for col in NUMERIC_COLUMNS],
-        index=players_stats_df.index
+        normalized_data, columns=[f"NORM_{col}" for col in NUMERIC_COLUMNS], index=players_stats_df.index
     )
-    
+
     result_df = pd.concat([result_df, normalized_df], axis=1)
 
     logger.debug(f"Raw career stats before normalization:\n{players_stats_df[NUMERIC_COLUMNS]}")
     logger.debug(f"Normalized career stats:\n{result_df[[f'NORM_{col}' for col in NUMERIC_COLUMNS]]}")
-    
+
     return result_df
 
 
@@ -80,4 +81,4 @@ def create_players_embeddings(players_stats_df: pd.DataFrame) -> pd.DataFrame:
         lambda row: row.to_numpy().tolist(), axis=1
     )
     logger.debug(f"Created embeddings for players list of length {len(players_stats_df)}")
-    return players_stats_df[METADATA_COLUMNS + ["embeddings"] + NUMERIC_COLUMNS]
+    return players_stats_df[METADATA_COLUMNS + ["embeddings"] + NUMERIC_COLUMNS + TO_NORMALIZED_COLUMNS]
