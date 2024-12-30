@@ -3,7 +3,7 @@ import uuid
 from qdrant_client import QdrantClient
 from qdrant_client.models import PointStruct
 from backend.utils.app_logger import logger
-from backend.src.embeddings import create_players_embeddings
+from backend.src.embeddings import PlayerEmbeddings
 from backend.config import settings
 import pandas as pd
 from tqdm import tqdm
@@ -132,5 +132,6 @@ class QdrantClientWrapper:
     ):
         players_stats_df = fetch_all_players_from_local_files(data_dir)
         logger.debug(f"Processing players list of length {len(players_stats_df)} for embeddings and metadata...")
-        processed_df = create_players_embeddings(players_stats_df)
+        embeddings_creator = PlayerEmbeddings(players_stats_df)
+        processed_df = embeddings_creator.create_players_embeddings()
         self.upsert_players_data_to_qdrant(processed_df)

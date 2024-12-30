@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from qdrant_client import QdrantClient
 from backend.config import settings
 from backend.utils.app_logger import logger
-from backend.src.embeddings import create_players_embeddings
+from backend.src.embeddings import PlayerEmbeddings
 from backend.utils.search_results import (
     remove_same_player,
     filter_search_result,
@@ -29,7 +29,8 @@ def prepare_input_query_vector(player_name: str) -> list:
     try:
         player_stats_df = fetch_player_stats_from_local_file(player_name, settings.PROCESSED_NBA_DATA_PATH)
         logger.debug(f"Player stats for {player_name}: \n{player_stats_df}")
-        processed_df = create_players_embeddings(player_stats_df)
+        embeddings_creator = PlayerEmbeddings(player_stats_df)
+        processed_df = embeddings_creator.create_players_embeddings()
         logger.debug(f"Embedded player stats for {player_name}: \n{processed_df}")
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
