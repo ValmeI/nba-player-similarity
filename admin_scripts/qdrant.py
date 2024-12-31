@@ -5,6 +5,7 @@ from backend.src.qdrant_wrapper import QdrantClientWrapper
 from backend.config import settings
 import json
 from data.process_data import fetch_all_players_from_local_files
+from icecream import ic
 
 
 def delete_collection(collection_name: str, host: str, port: int):
@@ -38,27 +39,20 @@ def search_collection(collection_name: str, query: str, host: str, port: int):
     return search_result
 
 
-def test_fetch_all_players_from_local_files(player_name: str):
-    player_name = player_name.lower()
-    player_stats_df = fetch_all_players_from_local_files(settings.EMBEDDED_NBA_DATA_PATH)
-    print(player_stats_df)
-    logger.debug(f"Player stats for {player_name}: \n{player_stats_df}")
-    player_embedding = fetch_all_players_from_local_files(settings.EMBEDDED_NBA_DATA_PATH).query(
-        f"PLAYER_NAME.str.lower() == '{player_name}'"
-    )
-    logger.debug(f"Player embedding for {player_name}: \n{player_embedding}")
-    query_vector = player_embedding["embeddings"].tolist()
+def test_search_players_embeddings_by_name(player_name: str, collection_name: str):
+    with QdrantClientWrapper(
+        host=settings.QDRANT_HOST, port=settings.QDRANT_PORT, collection_name=collection_name
+    ) as qdrant_object:
+        results = qdrant_object.search_players_embeddings_by_name(player_name)
+        ic(results)
+
 
 if __name__ == "__main__":
-    # delete_collection("player_career_trajectory")
+    # delete_collection(settings.QDRANT_COLLECTION_NAME)
     # fetch_all_collections()
-    # search_collection("player_career_trajectory", "kobe bryant")
+    # search_collection(settings.QDRANT_COLLECTION_NAME, "kobe bryant")
     # search_player_trajectory("kobe bryant")
     # search_player_trajectory("Charles Nash")
     # search_player_trajectory("Larry Sykes")
-    #file_paths = ["nba_data/processed_parquet_files/Kobe_Bryant_full_player_stats.parquet"]
-    #with QdrantClientWrapper(
-    #    host=settings.QDRANT_HOST, port=settings.QDRANT_PORT, collection_name=settings.COLLECTION_NAME
-    #) as qdrant_object:
-    #    qdrant_object.process_players_files(file_paths=file_paths)
-    test_fetch_all_players_from_local_files("LeBron James")
+    # file_paths = ["nba_data/processed_parquet_files/Kobe_Bryant_full_player_stats.parquet"]
+    test_search_players_embeddings_by_name("LeBron James", collection_name=settings.QDRANT_COLLECTION_NAME)

@@ -15,6 +15,7 @@ def str_to_bool(value):
 class Settings:
     QDRANT_HOST: str = os.getenv("QDRANT_HOST")
     QDRANT_PORT: int = int(os.getenv("QDRANT_PORT"))
+    QDRANT_COLLECTION_NAME: str = os.getenv("QDRANT_COLLECTION_NAME")
     LOG_LEVEL: str = os.getenv("LOG_LEVEL")
     LOG_TO_FILE: bool = str_to_bool(os.getenv("LOG_TO_FILE"))
     LOG_TO_CONSOLE: bool = str_to_bool(os.getenv("LOG_TO_CONSOLE"))
@@ -28,7 +29,6 @@ class Settings:
     FUZZ_THRESHOLD: int = int(os.getenv("FUZZ_THRESHOLD"))
     RAW_NBA_DATA_PATH: str = str(os.getenv("RAW_NBA_DATA_PATH"))
     PROCESSED_NBA_DATA_PATH: str = str(os.getenv("PROCESSED_NBA_DATA_PATH"))
-    EMBEDDED_NBA_DATA_PATH: str = str(os.getenv("EMBEDDED_NBA_DATA_PATH"))
 
 
 settings = Settings()

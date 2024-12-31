@@ -6,14 +6,13 @@ import time
 
 if __name__ == "__main__":
     RESET_COLLECTION = True
-    COLLECTION_NAME = "player_career_trajectory"
     start_time = time.time()
     start_datetime = datetime.datetime.now()
     logger.info(f"Starting data fetching process on {start_datetime}")
     folder_path = settings.PROCESSED_NBA_DATA_PATH
     logger.info(f"Loading data from {folder_path}")
     with QdrantClientWrapper(
-        host=settings.QDRANT_HOST, port=settings.QDRANT_PORT, collection_name=COLLECTION_NAME
+        host=settings.QDRANT_HOST, port=settings.QDRANT_PORT, collection_name=settings.QDRANT_COLLECTION_NAME
     ) as qdrant_object:
         qdrant_object.initialize_qdrant_collection(
             vector_size=settings.VECTOR_SIZE,

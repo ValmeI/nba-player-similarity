@@ -7,7 +7,7 @@ from backend.src.embeddings import PlayerEmbeddings
 from backend.config import settings
 import pandas as pd
 from tqdm import tqdm
-
+from pprint import pformat
 from data.process_data import fetch_all_players_from_local_files
 
 
@@ -53,6 +53,7 @@ class QdrantClientWrapper:
             # "Unable to serialize unknown type: <class 'numpy.int64'>"
             metadata = {
                 "PLAYER_NAME": str(row["PLAYER_NAME"]),
+                "PLAYER_NAME_LOWER_CASE": str(row["PLAYER_NAME"]).lower(),
                 "PTS_PER_GAME": float(row["PTS_PER_GAME"]),
                 "REB_PER_GAME": float(row["REB_PER_GAME"]),
                 "AST_PER_GAME": float(row["AST_PER_GAME"]),
@@ -135,3 +136,35 @@ class QdrantClientWrapper:
         embeddings_creator = PlayerEmbeddings(players_stats_df)
         processed_df = embeddings_creator.create_players_embeddings()
         self.upsert_players_data_to_qdrant(processed_df)
+
+    def search_players_embeddings_by_name(self, player_name: str):
+        player_name_lower = player_name.lower()
+        logger.info(f"Searching for player {player_name} in Qdrant collection '{self.collection_name}'")
+        results, _ = self.client.scroll(
+            collection_name=self.collection_name,
+            scroll_filter={"must": [{"key": "PLAYER_NAME_LOWER_CASE", "match": {"value": player_name_lower}}]},
+            with_vectors=True,  # we need the vector to search for the player
+            with_payload=True if settings.LOG_LEVEL == "DEBUG" else False,  # Fetch metadata payload only in debug mode
+            limit=1,  # Only fetch one point
+        )
+
+        if results:
+            logger.info(
+                f"Found results: {len(results)} for player '{player_name}' in collection '{self.collection_name}'"
+            )
+            logger.debug(
+                f"Found results for player '{player_name}' in collection '{self.collection_name}':\n{pformat(results[0].payload, indent=4)}"
+            )
+            embedding = results[0].vector
+            return embedding
+        else:
+            raise ValueError(f"Player {player_name} not found in Qdrant.")
+
+    def search_similar_players(self, query_vector: list):
+        results = self.client.search(
+            collection_name=self.collection_name,
+            query_vector=query_vector,
+            limit=settings.VECTOR_SEARCH_LIMIT,
+            with_payload=True,
+        )
+        return results
