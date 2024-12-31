@@ -8,7 +8,6 @@ from backend.utils.search_results import (
     filter_search_result,
     format_search_result,
 )
-from pprint import pformat
 
 
 app = FastAPI()
