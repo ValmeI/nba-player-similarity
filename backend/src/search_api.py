@@ -42,3 +42,7 @@ def search_similar_players(player_name: str):
     else:
         logger.error(f"No results found for player '{player_name}' in collection '{client.collection_name}'.")
         raise HTTPException(status_code=404, detail=f"Player '{player_name}' not found.")
+
+@app.get("/")
+def get_root():
+    return {"message": "Service is up and running."}
