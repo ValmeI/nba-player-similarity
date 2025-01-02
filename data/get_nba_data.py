@@ -32,6 +32,9 @@ def fetch_and_save_player_stats(player_name: str):
         logger.info(f"Fetching raw NBA data for {player_name} from NBA API.")
         career = playercareerstats.PlayerCareerStats(player_id=player_id, timeout=NBA_STATS_TIMEOUT)
         player_stats_df = career.get_data_frames()[0]
+        if player_stats_df.empty:
+            logger.warning(f"Empty DataFrame for {player_name} not saved.")
+            return
         player_stats_df.to_parquet(file_path, index=False)
         logger.info(f"Raw NBA data for {player_name} saved to {file_path}.")
         # Introduce a random delay between requests, try to avoid rate limits

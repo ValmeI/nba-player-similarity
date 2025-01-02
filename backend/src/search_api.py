@@ -5,7 +5,6 @@ from backend.utils.app_logger import logger
 from backend.utils.search_results import (
     format_logger_search_result,
     remove_same_player,
-    filter_search_result,
     format_search_result,
 )
 
@@ -34,8 +33,8 @@ def search_similar_players(player_name: str):
     search_result = client.search_similar_players(query_vector)
 
     search_result = remove_same_player(search_result, player_name)
-    # search_result = filter_search_result(search_result, settings.VECTOR_SEARCH_SCORE_THRESHOLD) # TODO: see if this is needed at or on what score threshold
-
+    # search_result = filter_search_result(search_result, settings.VECTOR_SEARCH_SCORE_THRESHOLD)
+    
     if search_result:
         format_logger_search_result(search_result)
         logger.debug(f"Found results: {format_logger_search_result(search_result)}")

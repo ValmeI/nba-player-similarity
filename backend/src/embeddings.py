@@ -1,8 +1,6 @@
 import pandas as pd
 from sklearn.preprocessing import RobustScaler
 from backend.utils.app_logger import logger
-from backend.config import settings
-import os
 
 pd.set_option("future.no_silent_downcasting", True)
 
