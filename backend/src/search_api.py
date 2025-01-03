@@ -34,7 +34,7 @@ def search_similar_players(player_name: str):
 
     search_result = remove_same_player(search_result, player_name)
     # search_result = filter_search_result(search_result, settings.VECTOR_SEARCH_SCORE_THRESHOLD)
-    
+
     if search_result:
         format_logger_search_result(search_result)
         logger.debug(f"Found results: {format_logger_search_result(search_result)}")
@@ -42,6 +42,7 @@ def search_similar_players(player_name: str):
     else:
         logger.error(f"No results found for player '{player_name}' in collection '{client.collection_name}'.")
         raise HTTPException(status_code=404, detail=f"Player '{player_name}' not found.")
+
 
 @app.get("/")
 def get_root():

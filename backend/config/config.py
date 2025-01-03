@@ -26,9 +26,11 @@ class Settings:
     VECTOR_SEARCH_SCORE_THRESHOLD: float = float(os.getenv("VECTOR_SEARCH_SCORE_THRESHOLD"))
     VECTOR_SIZE: int = int(os.getenv("VECTOR_SIZE"))
     MAX_THREADING_WORKERS: int = int(os.getenv("MAX_THREADING_WORKERS"))
-    FUZZ_THRESHOLD: int = int(os.getenv("FUZZ_THRESHOLD"))
+    FUZZ_THRESHOLD_LOCAL_STATS_FILE: int = int(os.getenv("FUZZ_THRESHOLD_LOCAL_STATS_FILE"))
+    FUZZ_THRESHOLD_LOCAL_NAME: int = int(os.getenv("FUZZ_THRESHOLD_LOCAL_NAME"))
     RAW_NBA_DATA_PATH: str = str(os.getenv("RAW_NBA_DATA_PATH"))
     PROCESSED_NBA_DATA_PATH: str = str(os.getenv("PROCESSED_NBA_DATA_PATH"))
+    OPENAI_API_KEY: str = str(os.getenv("OPENAI_API_KEY"))
 
 
 settings = Settings()

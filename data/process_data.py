@@ -54,7 +54,7 @@ def fill_missing_values(df: pd.DataFrame):
 def fetch_player_stats_from_local_file(player_name: str, data_dir: str):
     logger.debug(f"Fetching player stats from {data_dir} for {player_name}")
     all_files = os.listdir(data_dir)
-    best_match_file_name = find_top_matches(player_name, all_files, settings.FUZZ_THRESHOLD)
+    best_match_file_name = find_top_matches(player_name, all_files, settings.FUZZ_THRESHOLD_LOCAL_STATS_FILE)
     file_path = os.path.join(data_dir, best_match_file_name)
     return pd.read_parquet(file_path)
 
