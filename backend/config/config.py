@@ -9,6 +9,7 @@ load_dotenv(override=True)
 # Valid log levels that loguru accepts, incase there is typos in the .env and it would make whole code unresponsive
 LogLevel = Literal["TRACE", "DEBUG", "INFO", "SUCCESS", "WARNING", "ERROR", "CRITICAL"]
 
+
 class Settings(BaseSettings):
     # Qdrant settings
     QDRANT_HOST: str
@@ -47,6 +48,7 @@ class Settings(BaseSettings):
     class Config:
         case_sensitive = True
         env_file = ".env"
+
 
 try:
     settings = Settings()

@@ -21,9 +21,9 @@ def find_all_potential_matches(target: str, candidates: list, threshold: int) ->
             return {
                 "target": target,
                 "error": "Multiple matches found. Please be more specific.",
-                "matches": exact_matches
+                "matches": exact_matches,
             }
-            
+
         potential_matches.extend({"full_name": match, "score": 100} for match in exact_matches)
         logger.info(f"Exact match found for {target}: \n{pformat(exact_matches, indent=1)}")
         return {"target": target, "potential_matches": potential_matches}

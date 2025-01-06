@@ -25,23 +25,23 @@ def get_player_from_local_files(user_input_player_name: str, data_dir: str):
 
 
 def get_real_player_name(user_input_player_name: str) -> dict:
-    
+
     alias_match = get_player_from_aliases(user_input_player_name)
     if alias_match:
         return {"target": user_input_player_name, "player_name": alias_match}
-    
+
     potential_matches = get_player_from_local_files(user_input_player_name, settings.RAW_NBA_DATA_PATH)
-    
+
     # idea is that if user input is too vague, we return potential matches and ask user to be more specific
     if potential_matches.get("error"):
         return potential_matches
-        
+
     all_matches = []
     if potential_matches:
         first_full_name = potential_matches["potential_matches"][0]["full_name"]
     else:
         first_full_name = user_input_player_name
-        
+
     if potential_matches:
         logger.debug(
             f"Potential matches from local files for {user_input_player_name}: \n{pformat(potential_matches, indent=1)}"
@@ -53,7 +53,6 @@ def get_real_player_name(user_input_player_name: str) -> dict:
                 all_matches.append(alias_match)
                 return {"target": user_input_player_name, "player_name": alias_match}
 
-            
     final_full_name = all_matches[0] if all_matches else first_full_name
     logger.debug(f"Final full name: {final_full_name} from user input: {user_input_player_name}")
     return {"target": user_input_player_name, "player_name": final_full_name}
@@ -75,21 +74,21 @@ PLAYERS_ALIASES = [
             "Shaquille ONeil",
             "Shaquille",
             "O'Neal",
-            "Oneal"
+            "Oneal",
         ],
     },
     {
         "full_name": "Kobe Bryant",
         "aliases": [
-            "Black Mamba", 
-            "Koby Bryant", 
-            "Kobee Bryant", 
-            "Coby Bryant", 
+            "Black Mamba",
+            "Koby Bryant",
+            "Kobee Bryant",
+            "Coby Bryant",
             "Kobe Brian",
             "Kobe",
             "Bryant",
             "KB24",
-            "KB8"
+            "KB8",
         ],
     },
     {
@@ -103,7 +102,7 @@ PLAYERS_ALIASES = [
             "Leborn James",
             "Libran James",
             "LeBron",
-            "James"
+            "James",
         ],
     },
     {
@@ -119,19 +118,12 @@ PLAYERS_ALIASES = [
             "Michel Jordan",
             "Michael",
             "Jordan",
-            "Mike"
+            "Mike",
         ],
     },
     {
         "full_name": "Tim Duncan",
-        "aliases": [
-            "The Big Fundamental",
-            "Tim Dunkan",
-            "Timm Duncan",
-            "Tim Dunkin",
-            "Tim",
-            "Duncan"
-        ]
+        "aliases": ["The Big Fundamental", "Tim Dunkan", "Timm Duncan", "Tim Dunkin", "Tim", "Duncan"],
     },
     {
         "full_name": "Allen Iverson",
@@ -143,7 +135,7 @@ PLAYERS_ALIASES = [
             "A.Iverson",
             "Allen Iversen",
             "Allen",
-            "Iverson"
+            "Iverson",
         ],
     },
     {
@@ -157,7 +149,7 @@ PLAYERS_ALIASES = [
             "Durant Kavin",
             "Kevin Duren",
             "Kevin",
-            "Durant"
+            "Durant",
         ],
     },
     {
@@ -171,20 +163,12 @@ PLAYERS_ALIASES = [
             "Step Curry",
             "Stefen Curry",
             "Stephen",
-            "Curry"
+            "Curry",
         ],
     },
     {
         "full_name": "Magic Johnson",
-        "aliases": [
-            "Magic",
-            "Magik Johnson",
-            "Majic Johnson",
-            "Magick Johnson",
-            "Magc Johnson",
-            "Earvin",
-            "Johnson"
-        ],
+        "aliases": ["Magic", "Magik Johnson", "Majic Johnson", "Magick Johnson", "Magc Johnson", "Earvin", "Johnson"],
     },
     {
         "full_name": "Larry Bird",
@@ -195,7 +179,7 @@ PLAYERS_ALIASES = [
             "Larry Byrd",
             "Larry Baird",
             "Larry",
-            "Bird"
+            "Bird",
         ],
     },
     {
@@ -207,7 +191,7 @@ PLAYERS_ALIASES = [
             "Wilt Chamberlin",
             "Wilt Chambarlain",
             "Wilt",
-            "Chamberlain"
+            "Chamberlain",
         ],
     },
     {
@@ -219,7 +203,7 @@ PLAYERS_ALIASES = [
             "Karim Abdul Jabbar",
             "Kareem AbdulJabbar",
             "Kareem",
-            "Abdul-Jabbar"
+            "Abdul-Jabbar",
         ],
     },
     {
@@ -231,10 +215,13 @@ PLAYERS_ALIASES = [
             "Derk Nowitzky",
             "Dirk Nowitsky",
             "Dirk",
-            "Nowitzki"
+            "Nowitzki",
         ],
     },
-    {"full_name": "Hakeem Olajuwon", "aliases": ["The Dream", "Hakim Olajuwon", "Hakeen Olajuwan", "Hakeem Olajuwan", "Hakeem", "Olajuwon"]},
+    {
+        "full_name": "Hakeem Olajuwon",
+        "aliases": ["The Dream", "Hakim Olajuwon", "Hakeen Olajuwan", "Hakeem Olajuwan", "Hakeem", "Olajuwon"],
+    },
     {
         "full_name": "Charles Barkley",
         "aliases": [
@@ -244,36 +231,36 @@ PLAYERS_ALIASES = [
             "Chales Barkley",
             "Charles Barley",
             "Charles",
-            "Barkley"
+            "Barkley",
         ],
     },
-    {"full_name": "Dwyane Wade", "aliases": ["Flash", "D-Wade", "Dwayne Wade", "Duane Wade", "Dwayn Wade", "Dwyane", "Wade"]},
-    {"full_name": "Chris Paul", "aliases": ["CP3", "The Point God", "Chris Pal", "Cris Paul", "Christopher Paul", "Chris", "Paul"]},
-    {"full_name": "Paul Pierce", "aliases": ["The Truth", "Paul Pearce", "Pual Pierce", "Paul Pears", "Paul", "Pierce"]},
+    {
+        "full_name": "Dwyane Wade",
+        "aliases": ["Flash", "D-Wade", "Dwayne Wade", "Duane Wade", "Dwayn Wade", "Dwyane", "Wade"],
+    },
+    {
+        "full_name": "Chris Paul",
+        "aliases": ["CP3", "The Point God", "Chris Pal", "Cris Paul", "Christopher Paul", "Chris", "Paul"],
+    },
+    {
+        "full_name": "Paul Pierce",
+        "aliases": ["The Truth", "Paul Pearce", "Pual Pierce", "Paul Pears", "Paul", "Pierce"],
+    },
     {
         "full_name": "Russell Westbrook",
-        "aliases": [
-            "Brodie",
-            "Russel Westbrook",
-            "Russell Westbrok",
-            "Russell Westbrooke",
-            "Russell",
-            "Westbrook"
-        ],
+        "aliases": ["Brodie", "Russel Westbrook", "Russell Westbrok", "Russell Westbrooke", "Russell", "Westbrook"],
     },
-    {"full_name": "James Harden", "aliases": ["The Beard", "James Hardin", "Jams Harden", "James Hardeen", "James", "Harden"]},
-    {"full_name": "Kyrie Irving", "aliases": ["Uncle Drew", "Kyrie Erving", "Kiry Irving", "Kairie Irving", "Kyrie", "Irving"]},
+    {
+        "full_name": "James Harden",
+        "aliases": ["The Beard", "James Hardin", "Jams Harden", "James Hardeen", "James", "Harden"],
+    },
+    {
+        "full_name": "Kyrie Irving",
+        "aliases": ["Uncle Drew", "Kyrie Erving", "Kiry Irving", "Kairie Irving", "Kyrie", "Irving"],
+    },
     {
         "full_name": "Damian Lillard",
-        "aliases": [
-            "Dame",
-            "Dame Time",
-            "Damion Lillard",
-            "Damyan Lillard",
-            "Damian Lilerd",
-            "Damian",
-            "Lillard"
-        ],
+        "aliases": ["Dame", "Dame Time", "Damion Lillard", "Damyan Lillard", "Damian Lilerd", "Damian", "Lillard"],
     },
     {
         "full_name": "Giannis Antetokounmpo",
@@ -283,24 +270,60 @@ PLAYERS_ALIASES = [
             "Giannis Antentokounmpo",
             "Giannis Antetekounmpo",
             "Giannis",
-            "Antetokounmpo"
+            "Antetokounmpo",
         ],
     },
-    {"full_name": "Carmelo Anthony", "aliases": ["Melo", "Carmello Anthony", "Caramelo Anthony", "Carmelo Antony", "Carmelo", "Anthony"]},
-    {"full_name": "Anthony Davis", "aliases": ["AD", "The Brow", "Anthony Davies", "Antony Davis", "Anthony Daves", "Anthony", "Davis"]},
-    {"full_name": "Luka Doncic", "aliases": ["Luka Magic", "The Don", "Luca Doncic", "Luka Donchic", "Luka Donic", "Luka", "Doncic"]},
-    {"full_name": "Devin Booker", "aliases": ["Book", "D-Book", "Devon Booker", "Deven Booker", "Devin Boker", "Devin", "Booker"]},
-    {"full_name": "Zion Williamson", "aliases": ["Zanos", "Zian Williamson", "Zion Willamson", "Zion Willimson", "Zion", "Williamson"]},
-    {"full_name": "Joel Embiid", "aliases": ["The Process", "Joel Embeid", "Joelle Embiid", "Joel Embid", "Joel", "Embiid"]},
-    {"full_name": "Penny Hardaway", "aliases": ["Penny", "Anfernee Hardaway", "Anferny Hardaway", "Penny Hardway", "Penny", "Hardaway"]},
-    {"full_name": "Tracy McGrady", "aliases": ["T-Mac", "Tracy McGradey", "Tracey McGrady", "Tracy McCrady", "Tracy", "McGrady"]},
-    {"full_name": "Patrick Ewing", "aliases": ["Ewing", "Pat Ewing", "Patrick Ewings", "Patrick Ewin", "Patrick", "Ewing"]},
-    {"full_name": "Scottie Pippen", "aliases": ["Pip", "Scottie Pippin", "Scotty Pippen", "Scotie Pippen", "Scottie", "Pippen"]},
+    {
+        "full_name": "Carmelo Anthony",
+        "aliases": ["Melo", "Carmello Anthony", "Caramelo Anthony", "Carmelo Antony", "Carmelo", "Anthony"],
+    },
+    {
+        "full_name": "Anthony Davis",
+        "aliases": ["AD", "The Brow", "Anthony Davies", "Antony Davis", "Anthony Daves", "Anthony", "Davis"],
+    },
+    {
+        "full_name": "Luka Doncic",
+        "aliases": ["Luka Magic", "The Don", "Luca Doncic", "Luka Donchic", "Luka Donic", "Luka", "Doncic"],
+    },
+    {
+        "full_name": "Devin Booker",
+        "aliases": ["Book", "D-Book", "Devon Booker", "Deven Booker", "Devin Boker", "Devin", "Booker"],
+    },
+    {
+        "full_name": "Zion Williamson",
+        "aliases": ["Zanos", "Zian Williamson", "Zion Willamson", "Zion Willimson", "Zion", "Williamson"],
+    },
+    {
+        "full_name": "Joel Embiid",
+        "aliases": ["The Process", "Joel Embeid", "Joelle Embiid", "Joel Embid", "Joel", "Embiid"],
+    },
+    {
+        "full_name": "Penny Hardaway",
+        "aliases": ["Penny", "Anfernee Hardaway", "Anferny Hardaway", "Penny Hardway", "Penny", "Hardaway"],
+    },
+    {
+        "full_name": "Tracy McGrady",
+        "aliases": ["T-Mac", "Tracy McGradey", "Tracey McGrady", "Tracy McCrady", "Tracy", "McGrady"],
+    },
+    {
+        "full_name": "Patrick Ewing",
+        "aliases": ["Ewing", "Pat Ewing", "Patrick Ewings", "Patrick Ewin", "Patrick", "Ewing"],
+    },
+    {
+        "full_name": "Scottie Pippen",
+        "aliases": ["Pip", "Scottie Pippin", "Scotty Pippen", "Scotie Pippen", "Scottie", "Pippen"],
+    },
     {"full_name": "Grant Hill", "aliases": ["Hill", "G Hill", "Grant Hills", "Grant Hil", "Grant", "Hill"]},
-    {"full_name": "Vince Carter", "aliases": ["Vinsanity", "Half-Man Half-Amazing", "Vince Carters", "Vince Cartr", "Vince", "Carter"]},
+    {
+        "full_name": "Vince Carter",
+        "aliases": ["Vinsanity", "Half-Man Half-Amazing", "Vince Carters", "Vince Cartr", "Vince", "Carter"],
+    },
     {"full_name": "Ray Allen", "aliases": ["Jesus Shuttlesworth", "Ray Ray", "Ray Allens", "Ray Alen", "Ray", "Allen"]},
     {"full_name": "Paul George", "aliases": ["PG13", "Paul Georges", "Paul Gorge", "Paul Georg", "Paul", "George"]},
-    {"full_name": "Jimmy Butler", "aliases": ["Jimmy Buckets", "Jimmy Butlers", "J Butler", "Jimmy Butlar", "Jimmy", "Butler"]},
+    {
+        "full_name": "Jimmy Butler",
+        "aliases": ["Jimmy Buckets", "Jimmy Butlers", "J Butler", "Jimmy Butlar", "Jimmy", "Butler"],
+    },
     {"full_name": "Jayson Tatum", "aliases": ["JT", "J Tatum", "Jason Tatum", "Jayson Tatam", "Jayson", "Tatum"]},
     {"full_name": "Bradley Beal", "aliases": ["Beal", "Brad Beal", "Bradly Beal", "Bradley Bale", "Bradley", "Beal"]},
 ]
