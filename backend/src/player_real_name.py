@@ -24,13 +24,19 @@ def get_player_from_local_files(user_input_player_name: str, data_dir: str):
     return potential_matches
 
 
-def get_real_player_name(user_input_player_name: str):
+def get_real_player_name(user_input_player_name: str) -> dict:
     potential_matches = get_player_from_local_files(user_input_player_name, settings.RAW_NBA_DATA_PATH)
+    
+    # idea is that if user input is too vague, we return potential matches and ask user to be more specific
+    if potential_matches.get("error"):
+        return potential_matches
+        
     all_matches = []
     if potential_matches:
         first_full_name = potential_matches["potential_matches"][0]["full_name"]
     else:
         first_full_name = user_input_player_name
+        
     if potential_matches:
         logger.debug(
             f"Potential matches from local files for {user_input_player_name}: \n{pformat(potential_matches, indent=1)}"
@@ -40,15 +46,16 @@ def get_real_player_name(user_input_player_name: str):
             alias_match = get_player_from_aliases(player_name)
             if alias_match:
                 all_matches.append(alias_match)
-                return alias_match
+                return {"target": user_input_player_name, "player_name": alias_match}
 
     if not all_matches:
         alias_match = get_player_from_aliases(user_input_player_name)
         if alias_match:
             all_matches.append(alias_match)
+            
     final_full_name = all_matches[0] if all_matches else first_full_name
     logger.debug(f"Final full name: {final_full_name} from user input: {user_input_player_name}")
-    return final_full_name
+    return {"target": user_input_player_name, "player_name": final_full_name}
 
 
 PLAYERS_ALIASES = [

@@ -6,9 +6,11 @@ def filter_search_result(search_result: list, score_threshold: float):
     return [result for result in search_result if result.score > score_threshold]
 
 
-def format_search_result(search_result: list):
+def format_search_result(user_player_input: str, search_player_name, search_result: list):
     return [
-        {
+        {   
+            "target": user_player_input,
+            "searched_player": search_player_name,
             "player_name": result.payload["PLAYER_NAME"],
             "games_played": result.payload.get("GP"),
             "games_started": result.payload.get("GS"),

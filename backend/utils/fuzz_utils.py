@@ -16,8 +16,16 @@ def find_all_potential_matches(target: str, candidates: list, threshold: int) ->
     exact_matches = [candidate for candidate in candidates if target in candidate]
 
     if exact_matches:
+        if len(exact_matches) > 1:
+            logger.warning(f"Multiple exact matches found for {target}: \n{pformat(exact_matches, indent=1)}")
+            return {
+                "target": target,
+                "error": "Multiple matches found. Please be more specific.",
+                "matches": exact_matches
+            }
+            
         potential_matches.extend({"full_name": match, "score": 100} for match in exact_matches)
-        logger.info(f"Exact matches found for {target}: \n{pformat(exact_matches, indent=1)}")
+        logger.info(f"Exact match found for {target}: \n{pformat(exact_matches, indent=1)}")
         return {"target": target, "potential_matches": potential_matches}
     else:
         results = process.extract(target, candidates, score_cutoff=threshold)
