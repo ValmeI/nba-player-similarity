@@ -47,4 +47,4 @@ def format_logger_search_result(search_result: list):
 
 def remove_same_player(search_results: list, player_name: str):
     logger.debug(f"Removing same player: {player_name} from search results {search_results}")
-    return [result for result in search_results if result.payload["PLAYER_NAME"].lower() != player_name]
+    return [result for result in search_results if result.payload["PLAYER_NAME_LOWER_CASE"] != player_name.lower()]

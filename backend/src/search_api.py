@@ -47,7 +47,7 @@ def search_similar_players(player_name: str):
         )
 
     search_result = client.search_similar_players(query_vector)
-    search_result = remove_same_player(search_result, player_result)
+    search_result = remove_same_player(search_result, real_player_name)
     # search_result = filter_search_result(search_result, settings.QDRANT_VECTOR_SEARCH_SCORE_THRESHOLD)
 
     if search_result:
