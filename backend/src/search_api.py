@@ -31,18 +31,20 @@ def search_similar_players(player_name: str):
     
     if player_result.get("error"):
         return {
-            "searched_player": {"target": player_result["target"], "player_name": player_name},
-            "error": player_result["error"],
-            "matches": player_result["matches"]
-        }
+                "searched_player": {"target": player_result["target"], "player_name": player_name},
+                "error": player_result["error"],
+                "matches": player_result["matches"]
+            }
 
     real_player_name = player_result["player_name"]
     logger.info(f"Received search query for real player name: {real_player_name} from user input: {player_name}")
 
     query_vector = generate_similar_players_search_query_vector(real_player_name)
     if not query_vector:
-        logger.error(f"Could not generate query vector for player '{real_player_name}'")
-        return None
+        raise HTTPException(
+            status_code=500,
+            detail=f"Could not generate query vector for player '{real_player_name}'"
+        )
 
     search_result = client.search_similar_players(query_vector)
     search_result = remove_same_player(search_result, player_result)
@@ -56,7 +58,10 @@ def search_similar_players(player_name: str):
         logger.error(
             f"No results found for player '{real_player_name}' in collection '{client.collection_name}' from user input '{player_name}'"
         )
-        return None
+        return {
+            "searched_player": {"target": real_player_name, "player_name": player_name},
+            "similar_players": []
+        }
 
 
 @app.get("/")
