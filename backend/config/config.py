@@ -1,36 +1,54 @@
 from dotenv import load_dotenv
-import os
+from typing import Literal
+from pydantic_settings import BaseSettings
+from pydantic import Field
+
 
 load_dotenv(override=True)
 
+# Valid log levels that loguru accepts, incase there is typos in the .env and it would make whole code unresponsive
+LogLevel = Literal["TRACE", "DEBUG", "INFO", "SUCCESS", "WARNING", "ERROR", "CRITICAL"]
 
-def str_to_bool(value):
-    """
-    Convert string to boolean. Workaround for bool(os.getenv(...))
-    as bool('False') evaluates to True.
-    """
-    return value.lower() in ("true", "1", "yes")
+class Settings(BaseSettings):
+    # Qdrant settings
+    QDRANT_HOST: str
+    QDRANT_PORT: int
+    QDRANT_COLLECTION_NAME: str
+    QDRANT_VECTOR_DISTANCE_METRIC: Literal["Cosine", "Dot", "Euclidean"] = Field(
+        ..., description="Distance metric used for vector similarity"
+    )
+    QDRANT_VECTOR_SEARCH_LIMIT: int = Field(..., gt=0)
+    QDRANT_VECTOR_SEARCH_SCORE_THRESHOLD: float = Field(..., ge=0.0, le=1.0)
+    QDRANT_VECTOR_SIZE: int = Field(..., gt=0)
 
+    # Logging settings
+    LOG_LEVEL: LogLevel
+    LOG_TO_FILE: bool
+    LOG_TO_CONSOLE: bool
+    LOG_ERRORS_TO_SEPARATE_FILE: bool
 
-class Settings:
-    QDRANT_HOST: str = os.getenv("QDRANT_HOST")
-    QDRANT_PORT: int = int(os.getenv("QDRANT_PORT"))
-    QDRANT_COLLECTION_NAME: str = os.getenv("QDRANT_COLLECTION_NAME")
-    LOG_LEVEL: str = os.getenv("LOG_LEVEL")
-    LOG_TO_FILE: bool = str_to_bool(os.getenv("LOG_TO_FILE"))
-    LOG_TO_CONSOLE: bool = str_to_bool(os.getenv("LOG_TO_CONSOLE"))
-    LOG_ERRORS_TO_SEPARATE_FILE: bool = str_to_bool(os.getenv("LOG_ERRORS_TO_SEPARATE_FILE"))
-    COLLECTION_NAME: str = os.getenv("COLLECTION_NAME")
-    VECTOR_DISTANCE_METRIC: str = os.getenv("VECTOR_DISTANCE_METRIC")
-    VECTOR_SEARCH_LIMIT: int = int(os.getenv("VECTOR_SEARCH_LIMIT"))
-    VECTOR_SEARCH_SCORE_THRESHOLD: float = float(os.getenv("VECTOR_SEARCH_SCORE_THRESHOLD"))
-    VECTOR_SIZE: int = int(os.getenv("VECTOR_SIZE"))
-    MAX_THREADING_WORKERS: int = int(os.getenv("MAX_THREADING_WORKERS"))
-    FUZZ_THRESHOLD_LOCAL_STATS_FILE: int = int(os.getenv("FUZZ_THRESHOLD_LOCAL_STATS_FILE"))
-    FUZZ_THRESHOLD_LOCAL_NAME: int = int(os.getenv("FUZZ_THRESHOLD_LOCAL_NAME"))
-    RAW_NBA_DATA_PATH: str = str(os.getenv("RAW_NBA_DATA_PATH"))
-    PROCESSED_NBA_DATA_PATH: str = str(os.getenv("PROCESSED_NBA_DATA_PATH"))
-    OPENAI_API_KEY: str = str(os.getenv("OPENAI_API_KEY"))
+    # Threading settings
+    MAX_THREADING_WORKERS: int = Field(..., gt=0)
 
+    # Fuzzy matching settings
+    FUZZ_THRESHOLD_LOCAL_STATS_FILE: int = Field(..., ge=0, le=100)
+    FUZZ_THRESHOLD_LOCAL_NAME: int = Field(..., ge=0, le=100)
 
-settings = Settings()
+    # Data paths
+    RAW_NBA_DATA_PATH: str
+    PROCESSED_NBA_DATA_PATH: str
+
+    # Logging settings
+    LOG_LEVEL: LogLevel
+    LOG_TO_FILE: bool
+    LOG_TO_CONSOLE: bool
+    LOG_ERRORS_TO_SEPARATE_FILE: bool
+
+    class Config:
+        case_sensitive = True
+        env_file = ".env"
+
+try:
+    settings = Settings()
+except Exception as e:
+    raise ValueError(f"Environment validation failed: {str(e)}") from e

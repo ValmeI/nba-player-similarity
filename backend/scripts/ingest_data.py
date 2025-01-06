@@ -15,7 +15,7 @@ if __name__ == "__main__":
         host=settings.QDRANT_HOST, port=settings.QDRANT_PORT, collection_name=settings.QDRANT_COLLECTION_NAME
     ) as qdrant_object:
         qdrant_object.initialize_qdrant_collection(
-            vector_size=settings.VECTOR_SIZE,
+            vector_size=settings.QDRANT_VECTOR_SIZE,
             reset_collection=RESET_COLLECTION,  # True to allow duplication of the data
         )
         qdrant_object.store_players_embedding(data_dir=folder_path)

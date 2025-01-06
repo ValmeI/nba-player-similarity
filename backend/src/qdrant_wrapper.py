@@ -42,7 +42,7 @@ class QdrantClientWrapper:
             self.collection_name,
             vectors_config={
                 "size": vector_size,
-                "distance": settings.VECTOR_DISTANCE_METRIC,
+                "distance": settings.QDRANT_VECTOR_DISTANCE_METRIC,
             },
         )
 
@@ -164,7 +164,7 @@ class QdrantClientWrapper:
         results = self.client.search(
             collection_name=self.collection_name,
             query_vector=query_vector,
-            limit=settings.VECTOR_SEARCH_LIMIT,
+            limit=settings.QDRANT_VECTOR_SEARCH_LIMIT,
             with_payload=True,
         )
         return results
