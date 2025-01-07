@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from backend.config import settings
 from backend.src.qdrant_wrapper import QdrantClientWrapper
-from backend.utils.app_logger import logger
+from shared.utils.app_logger import logger
 from backend.utils.search_results import (
     format_logger_search_result,
     remove_same_player,

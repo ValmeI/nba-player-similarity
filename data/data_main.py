@@ -1,6 +1,6 @@
 import time
 from datetime import datetime
-from backend.utils.app_logger import logger
+from shared.utils.app_logger import logger
 from data.get_nba_data import fetch_all_players_stats_in_threads
 from data.process_data import process_player_metrics_in_threads
 import os

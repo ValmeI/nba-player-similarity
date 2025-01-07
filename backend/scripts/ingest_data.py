@@ -1,6 +1,6 @@
 import datetime
 from backend.src.qdrant_wrapper import QdrantClientWrapper
-from backend.utils.app_logger import logger
+from shared.utils.app_logger import logger
 from backend.config import settings
 import time
 

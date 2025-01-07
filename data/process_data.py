@@ -5,7 +5,7 @@ import pandas as pd
 from backend.config import settings
 from backend.utils.fuzz_utils import find_top_matches
 import os
-from backend.utils.app_logger import logger
+from shared.utils.app_logger import logger
 from tqdm import tqdm
 
 

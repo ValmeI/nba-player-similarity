@@ -2,7 +2,7 @@ from datetime import datetime
 import uuid
 from qdrant_client import QdrantClient
 from qdrant_client.models import PointStruct
-from backend.utils.app_logger import logger
+from shared.utils.app_logger import logger
 from backend.src.embeddings import PlayerEmbeddings
 from backend.config import settings
 import pandas as pd

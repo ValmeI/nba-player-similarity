@@ -1,5 +1,5 @@
 from rapidfuzz import process
-from backend.utils.app_logger import logger
+from shared.utils.app_logger import logger
 from pprint import pformat
 
 

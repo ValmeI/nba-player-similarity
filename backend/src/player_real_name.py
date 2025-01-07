@@ -1,4 +1,4 @@
-from backend.utils.app_logger import logger
+from shared.utils.app_logger import logger
 from backend.utils.fuzz_utils import find_all_potential_matches
 import os
 from backend.config import settings

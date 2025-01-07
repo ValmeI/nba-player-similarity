@@ -1,5 +1,5 @@
 import json
-from backend.utils.app_logger import logger
+from shared.utils.app_logger import logger
 
 
 def filter_search_result(search_result: list, score_threshold: float):

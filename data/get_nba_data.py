@@ -4,7 +4,7 @@ import os
 import pandas as pd
 from nba_api.stats.endpoints import playercareerstats
 from tqdm import tqdm
-from backend.utils.app_logger import logger
+from shared.utils.app_logger import logger
 from backend.config import settings
 import random
 import time
