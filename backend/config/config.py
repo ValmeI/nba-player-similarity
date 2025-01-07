@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     QDRANT_VECTOR_SEARCH_LIMIT: int = Field(..., gt=0)
     QDRANT_VECTOR_SEARCH_SCORE_THRESHOLD: float = Field(..., ge=0.0, le=1.0)
     QDRANT_VECTOR_SIZE: int = Field(..., gt=0)
+    
+    # FastAPI settings
+    FAST_API_HOST: str
+    FAST_API_PORT: int
 
     # Logging settings
     LOG_LEVEL: LogLevel
