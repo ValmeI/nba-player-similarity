@@ -16,3 +16,4 @@ disable=
     wrong-import-position,
     dangerous-default-value,
     trailing-whitespace,
+    logging-fstring-interpolation

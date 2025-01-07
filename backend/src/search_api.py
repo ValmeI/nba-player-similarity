@@ -29,7 +29,7 @@ def generate_similar_players_search_query_vector(player_name: str):
         return None
 
 
-@app.post("/search_similar_players/")
+@app.get("/search_similar_players/")
 def search_similar_players(player_name: str):
     player_name = player_name.lower()
     player_result = get_real_player_name(player_name)

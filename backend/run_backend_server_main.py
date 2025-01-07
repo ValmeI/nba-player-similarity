@@ -26,7 +26,7 @@ app = search_app
 
 if __name__ == "__main__":
     import uvicorn
-    
+
     # Run the FastAPI server
     uvicorn.run(
         "backend.run_backend_server_main:app",
