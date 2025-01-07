@@ -11,14 +11,14 @@ project_root = Path(__file__).resolve().parent.parent.parent
 if str(project_root) not in sys.path:
     sys.path.append(str(project_root))
 
-from backend.config import settings
+from shared.config import settings
 from shared.utils.app_logger import logger
 
 
 REQUEST_TIMEOUT = 10  # Timeout for API requests
-INITIAL_MESSAGE = "Hi! Type an NBA player's name to find similar players and press Enter..."
-API_URL = f"http://{settings.FAST_API_HOST}:{settings.FAST_API_PORT}/search_similar_players/"
 TITLE = "NBA Player Similarity Chat"
+INITIAL_MESSAGE = "Hi! Type an NBA player's name to find similar players and press Enter..."
+API_BASE_URL = f"http://{settings.FAST_API_HOST}:{settings.FAST_API_PORT}"
 INPUT_PLACEHOLDER = "Type a NBA player's name and press Enter..."
 
 
@@ -30,15 +30,17 @@ def initialize_session_state():
 
 
 def display_chat_messages():
-    for msg in st.session_state["messages"]:
-        message(msg["content"], is_user=msg["role"] == "user")
+    # enumerate to get unique key for each message by combining the role 
+    # To avoid StreamlitDuplicateElementId error
+    for i, msg in enumerate(st.session_state["messages"]):
+        message(msg["content"], is_user=(msg["role"] == "user"), key=f"{msg['role']}_{i}")
 
-
+@st.cache_data
 def fetch_similar_players(requested_player_name):
-    logger.info("Fetching similar players for: %s", requested_player_name)
+    logger.info(f"Fetching similar players for: {requested_player_name}")
     try:
         with st.spinner("Searching for similar players..."):
-            url = f"{API_URL}?player_name={requested_player_name}"
+            url = f"{API_BASE_URL}/search_similar_players/?player_name={requested_player_name}"
             response = requests.get(url, timeout=REQUEST_TIMEOUT)
         response.raise_for_status()  # Raise an error for bad responses
         return response.json()
@@ -48,7 +50,7 @@ def fetch_similar_players(requested_player_name):
 
 def handle_user_input():
     user_input = st.session_state.user_input.strip()
-    logger.info("User input received: %s", user_input)
+    logger.info(f"User input received: {user_input}")
     if user_input:
         # Add user message to the chat history
         st.session_state["messages"].append({"role": "user", "content": user_input})
@@ -86,6 +88,7 @@ def main():
     if user_input and st.session_state["user_input"] != user_input:
         handle_user_input()
 
+    # streamlit run /home/valme/git/nba-player-similarity/frontend/src/app.py --server.headless true 
 
 if __name__ == "__main__":
     main()

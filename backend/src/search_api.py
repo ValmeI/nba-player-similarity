@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException
-from backend.config import settings
+from shared.config import settings
 from backend.src.qdrant_wrapper import QdrantClientWrapper
 from shared.utils.app_logger import logger
 from backend.utils.search_results import (

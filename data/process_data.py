@@ -2,7 +2,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
 from datetime import datetime
 import pandas as pd
-from backend.config import settings
+from shared.config import settings
 from backend.utils.fuzz_utils import find_top_matches
 import os
 from shared.utils.app_logger import logger

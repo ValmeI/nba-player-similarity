@@ -4,7 +4,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.models import PointStruct
 from shared.utils.app_logger import logger
 from backend.src.embeddings import PlayerEmbeddings
-from backend.config import settings
+from shared.config import settings
 import pandas as pd
 from tqdm import tqdm
 from pprint import pformat

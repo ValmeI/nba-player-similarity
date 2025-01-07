@@ -4,7 +4,7 @@ from shared.utils.app_logger import logger
 from data.get_nba_data import fetch_all_players_stats_in_threads
 from data.process_data import process_player_metrics_in_threads
 import os
-from backend.config import settings
+from shared.config import settings
 
 
 if __name__ == "__main__":

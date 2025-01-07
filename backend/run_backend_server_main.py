@@ -19,7 +19,7 @@ The server will start on based on the settings in the configuration file. Follow
 """
 
 from backend.src.search_api import app as search_app
-from backend.config import settings
+from shared.config import settings
 
 # Initialize the FastAPI application
 app = search_app

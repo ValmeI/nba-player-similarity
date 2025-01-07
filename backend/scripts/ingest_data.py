@@ -1,7 +1,7 @@
 import datetime
 from backend.src.qdrant_wrapper import QdrantClientWrapper
 from shared.utils.app_logger import logger
-from backend.config import settings
+from shared.config import settings
 import time
 
 if __name__ == "__main__":

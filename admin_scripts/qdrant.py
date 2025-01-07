@@ -1,6 +1,6 @@
 from qdrant_client import QdrantClient
 from backend.src.qdrant_wrapper import QdrantClientWrapper
-from backend.config import settings
+from shared.config import settings
 from icecream import ic
 
 
