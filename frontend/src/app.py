@@ -7,7 +7,7 @@ from streamlit_chat import message
 
 project_root = Path(__file__).resolve().parent.parent.parent
 
-# Add project root to PYTHONPATH
+# Add project root to PYTHONPATH as streamlit wants to run as "streamlit runapp.py" and not module "python -m  runapp.py"
 if str(project_root) not in sys.path:
     sys.path.append(str(project_root))
 
@@ -23,7 +23,6 @@ INPUT_PLACEHOLDER = "Type a NBA player's name and press Enter..."
 
 
 def initialize_session_state():
-    """Initialize session state for chat history and user input."""
     if "messages" not in st.session_state:
         st.session_state["messages"] = [{"role": "assistant", "content": INITIAL_MESSAGE}]
     if "user_input" not in st.session_state:
@@ -32,7 +31,7 @@ def initialize_session_state():
 
 def display_chat_messages():
     for msg in st.session_state["messages"]:
-        message(msg["content"], is_user=(msg["role"] == "user"))
+        message(msg["content"], is_user=msg["role"] == "user")
 
 
 def fetch_similar_players(requested_player_name):
