@@ -15,16 +15,12 @@ from shared.config import settings
 from shared.utils.app_logger import logger
 
 
-REQUEST_TIMEOUT = 10  # Timeout for API requests
-TITLE = "NBA Player Similarity Chat"
-INITIAL_MESSAGE = "Hi! Type an NBA player's name to find similar players and press Enter..."
 API_BASE_URL = f"http://{settings.FAST_API_HOST}:{settings.FAST_API_PORT}"
-INPUT_PLACEHOLDER = "Type a NBA player's name and press Enter..."
 
 
 def initialize_session_state():
     if "messages" not in st.session_state:
-        st.session_state["messages"] = [{"role": "assistant", "content": INITIAL_MESSAGE}]
+        st.session_state["messages"] = [{"role": "assistant", "content": settings.STREAMLIT_INITIAL_MESSAGE}]
     if "user_input" not in st.session_state:
         st.session_state["user_input"] = ""
 
@@ -41,7 +37,7 @@ def fetch_similar_players(requested_player_name):
     try:
         with st.spinner("Searching for similar players..."):
             url = f"{API_BASE_URL}/search_similar_players/?player_name={requested_player_name}"
-            response = requests.get(url, timeout=REQUEST_TIMEOUT)
+            response = requests.get(url, timeout=settings.API_REQUEST_TIMEOUT)
         response.raise_for_status()  # Raise an error for bad responses
         return response.json()
     except requests.exceptions.RequestException as e:
@@ -76,12 +72,12 @@ def handle_user_input():
 def main():
     """Main function."""
     logger.info("Starting the application")
-    st.title(TITLE)
+    st.title(settings.STREAMLIT_TITLE)
     initialize_session_state()
     display_chat_messages()
 
     user_input = st.text_input(
-        "Your message:", key="user_input", placeholder=INPUT_PLACEHOLDER, on_change=handle_user_input
+        "Your message:", key="user_input", placeholder=settings.STREAMLIT_INPUT_PLACEHOLDER, on_change=handle_user_input
     )
 
     # Trigger the function manually if new input is detected
