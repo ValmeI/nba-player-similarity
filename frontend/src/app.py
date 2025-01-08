@@ -26,10 +26,11 @@ def initialize_session_state():
 
 
 def display_chat_messages():
-    # enumerate to get unique key for each message by combining the role 
+    # enumerate to get unique key for each message by combining the role
     # To avoid StreamlitDuplicateElementId error
     for i, msg in enumerate(st.session_state["messages"]):
         message(msg["content"], is_user=(msg["role"] == "user"), key=f"{msg['role']}_{i}")
+
 
 @st.cache_data
 def fetch_similar_players(requested_player_name):
@@ -84,7 +85,8 @@ def main():
     if user_input and st.session_state["user_input"] != user_input:
         handle_user_input()
 
-    # streamlit run /home/valme/git/nba-player-similarity/frontend/src/app.py --server.headless true 
+    # streamlit run /home/valme/git/nba-player-similarity/frontend/src/app.py --server.headless true
+
 
 if __name__ == "__main__":
     main()

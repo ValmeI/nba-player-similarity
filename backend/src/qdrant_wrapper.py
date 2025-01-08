@@ -137,7 +137,7 @@ class QdrantClientWrapper:
         processed_df = embeddings_creator.create_players_embeddings()
         self.upsert_players_data_to_qdrant(processed_df)
 
-    def search_players_embeddings_by_name(self, player_name: str):
+    def search_players_embeddings_by_name(self, player_name: str) -> list:
         player_name_lower = player_name.lower()
         logger.info(f"Searching for player {player_name} in Qdrant collection '{self.collection_name}'")
         results, _ = self.client.scroll(
@@ -156,7 +156,7 @@ class QdrantClientWrapper:
                 f"Found results for player '{player_name}' in collection '{self.collection_name}':\n{pformat(results[0].payload, indent=4)}"
             )
             embedding = results[0].vector
-            return embedding
+            return embedding, results
         else:
             raise ValueError(f"Player {player_name} not found in Qdrant.")
 

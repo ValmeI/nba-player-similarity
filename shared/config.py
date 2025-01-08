@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     LOG_TO_FILE: bool
     LOG_TO_CONSOLE: bool
     LOG_ERRORS_TO_SEPARATE_FILE: bool
-    
+
     # Frontend settings
     API_REQUEST_TIMEOUT: int
     STREAMLIT_TITLE: str
