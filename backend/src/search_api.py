@@ -57,6 +57,7 @@ def handle_player_search_result(player_result, player_name):
 
 @app.get("/user_requested_player_career_stats/")
 def user_requested_player_career_stats(player_name: str):
+    logger.info(f"Received request for career stats for player: {player_name}")
     player_name = player_name.lower()
     player_result = get_real_player_name(player_name)
 
@@ -66,8 +67,12 @@ def user_requested_player_career_stats(player_name: str):
 
     real_player_name = result["searched_player"]["player_name"]
     career_stats = fetch_user_input_player_stats(real_player_name)
+    if career_stats:
+        logger.info(f"Retrieved career stats for player: {real_player_name}")
+        logger.debug(f"Retrieved career stats: {career_stats}")
+    else:
+        logger.error(f"Failed to retrieve career stats for player: {real_player_name}")
     return format_user_requested_player_career_stats(player_result, career_stats)
-    # return {"searched_player": {"target": real_player_name, "player_name": player_name}, "career_stats": career_stats}
 
 
 @app.get("/search_similar_players/")
