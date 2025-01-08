@@ -45,6 +45,19 @@ def fetch_similar_players(requested_player_name):
         return {"error": f"Error connecting to the server: {e}"}
 
 
+@st.cache_data
+def fetch_user_input_player_stats(requested_player_name):
+    logger.info(f"Fetching career stats for: {requested_player_name}")
+    try:
+        with st.spinner("Fetching career stats..."):
+            url = f"{API_BASE_URL}/user_requested_player_career_stats/?player_name={requested_player_name}"
+            response = requests.get(url, timeout=settings.API_REQUEST_TIMEOUT)
+        response.raise_for_status()  # Raise an error for bad responses
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        return {"error": f"Error connecting to the server: {e}"}
+
+
 def handle_user_input():
     user_input = st.session_state.user_input.strip()
     logger.info(f"User input received: {user_input}")
@@ -53,21 +66,53 @@ def handle_user_input():
         st.session_state["messages"].append({"role": "user", "content": user_input})
 
         # Call the API with the player's name
-        result = fetch_similar_players(user_input)
+        fetch_user_input_player_stats_result = fetch_user_input_player_stats(user_input)
+        similar_players_result = fetch_similar_players(user_input)
 
-        if "error" in result:
-            reply = result["error"]
-        else:
-            similar_players = "\n".join(
-                [f"- {player['player_name']} (Similarity Score: {player['similarity_score']:.2f})" for player in result]
+        if "error" in similar_players_result or "error" in fetch_user_input_player_stats_result:
+            reply = (
+                similar_players_result["error"]
+                if "error" in similar_players_result
+                else fetch_user_input_player_stats_result["error"]
             )
-            reply = f"Here are players similar to '{user_input}':\n{similar_players}"
+        else:
+            # Prepare data for the response
+            similar_players = [
+                {
+                    "player_name": player["player_name"],
+                    "points_per_game": player["points_per_game"],
+                    "assists_per_game": player["assists_per_game"],
+                    "rebounds_per_game": player["rebounds_per_game"],
+                    "similarity_score": player["similarity_score"],
+                }
+                for player in similar_players_result
+            ]
+
+            summary = f"{user_input} shares similarities with {', '.join([player['player_name'] for player in similar_players])} based on scoring and playing style."
+
+            # Generate the detailed response
+            reply = generate_similar_players_response(user_input, similar_players, summary)
 
         # Add the assistant's response to the chat history
         st.session_state["messages"].append({"role": "assistant", "content": reply})
 
         # Clear the input field
         st.session_state["user_input"] = ""
+
+
+def generate_similar_players_response(player_name, similar_players, summary):
+    prompt = f"Here are players similar to {player_name}:\n\n"
+    prompt += "Player Comparison:\n"
+    prompt += "Player               Points/Game   Assists/Game   Rebounds/Game   Similarity\n"
+    prompt += "---------------------------------------------------------------------------\n"
+
+    for player in similar_players:
+        prompt += f"{player['player_name']: <20} {player['points_per_game']: <15} {player['assists_per_game']: <15} {player['rebounds_per_game']: <15} {player['similarity_score']:.2f}%\n"
+
+    prompt += "\nSummary:\n"
+    prompt += summary
+
+    return prompt
 
 
 def main():
