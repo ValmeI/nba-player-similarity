@@ -119,7 +119,7 @@ def format_stats_for_display(user_stats, similar_player_stats):
 
     html_content = f"""
         <h2>Here are players similar to {user_stats[0]['player_name']}:</h2>
-        <h3>User Input Player Career Stats:</h3>
+        <h3>{user_stats[0]['player_name']} Career Stats:</h3>
         <table border='1'>
             <tr>
                 <th>Player</th>
