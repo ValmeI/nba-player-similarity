@@ -71,14 +71,12 @@ def get_user_input_stats(user_input):
         return [
             {
                 "player_name": user_stats_result_player["searched_player"]["player_name"],
-                "points_per_game": round(user_stats_result_player["points_per_game"], 1),
-                "assists_per_game": round(
-                    user_stats_result_player["assists_per_game"],
-                ),
-                "rebounds_per_game": round(user_stats_result_player["rebounds_per_game"]),
-                "blocks_per_game": round(user_stats_result_player["blocks_per_game"]),
-                "steals_per_game": round(user_stats_result_player["steals_per_game"]),
-                "true_shooting_percentage": user_stats_result_player["true_shooting_percentage"],
+                "points_per_game": user_stats_result_player["points_per_game"],
+                "assists_per_game": user_stats_result_player["assists_per_game"],
+                "rebounds_per_game": user_stats_result_player["rebounds_per_game"],
+                "blocks_per_game": user_stats_result_player["blocks_per_game"],
+                "steals_per_game": user_stats_result_player["steals_per_game"],
+                "true_shooting_percentage": user_stats_result_player["true_shooting_percentage"] * 100,
                 "field_goal_percentage": user_stats_result_player["field_goal_percentage"],
                 "three_point_percentage": user_stats_result_player["three_point_percentage"],
                 "free_throw_percentage": user_stats_result_player["free_throw_percentage"],
@@ -98,14 +96,12 @@ def get_similar_player_stats(user_stats):
         return [
             {
                 "player_name": player["player_name"],
-                "points_per_game": round(player["points_per_game"], 1),
-                "assists_per_game": round(
-                    player["assists_per_game"],
-                ),
-                "rebounds_per_game": round(player["rebounds_per_game"]),
-                "blocks_per_game": round(player["blocks_per_game"]),
-                "steals_per_game": round(player["steals_per_game"]),
-                "true_shooting_percentage": player["true_shooting_percentage"],
+                "points_per_game": player["points_per_game"],
+                "assists_per_game": player["assists_per_game"],
+                "rebounds_per_game": player["rebounds_per_game"],
+                "blocks_per_game": player["blocks_per_game"],
+                "steals_per_game": player["steals_per_game"],
+                "true_shooting_percentage": player["true_shooting_percentage"] * 100,
                 "field_goal_percentage": player["field_goal_percentage"],
                 "three_point_percentage": player["three_point_percentage"],
                 "free_throw_percentage": player["free_throw_percentage"],
@@ -123,7 +119,7 @@ def format_stats_for_display(user_stats, similar_player_stats):
 
     html_content = f"""
         <h2>Here are players similar to {user_stats[0]['player_name']}:</h2>
-        <h3>User Input Player Stats:</h3>
+        <h3>User Input Player Career Stats:</h3>
         <table border='1'>
             <tr>
                 <th>Player</th>
@@ -148,16 +144,16 @@ def format_stats_for_display(user_stats, similar_player_stats):
                 f'<td>{player["blocks_per_game"]}</td>'
                 f'<td>{player["steals_per_game"]}</td>'
                 f'<td>{player["true_shooting_percentage"]:.2f}%</td>'
-                f'<td>{player["free_throw_percentage"]:.2f}%</td>'
                 f'<td>{player["field_goal_percentage"]:.2f}%</td>'
                 f'<td>{player["three_point_percentage"]:.2f}%</td>'
+                f'<td>{player["free_throw_percentage"]:.2f}%</td>'
                 f'<td>{player["last_played_season"]}</td>'
                 f'<td>{player["last_played_age"]}</td>'
                 f'<td>{player["total_seasons"]}</td></tr>'
                 for player in user_stats
             ])}
         </table>
-        <h3>Similar Players Stats:</h3>
+        <h3>Similar Career Players Stats:</h3>
         <table border='1'>
             <tr>
                 <th>Player</th>

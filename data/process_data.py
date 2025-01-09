@@ -103,14 +103,14 @@ def calculate_career_averages(player_stats_df: pd.DataFrame):
     }
 
     # Shooting percentages
-    career_averages["FG%"] = career_totals["FG_PCT"] if career_totals["FGA"] > 0 else 0
-    career_averages["3P%"] = career_totals["FG3_PCT"] if career_totals["FG3A"] > 0 else 0
+    career_averages["FG%"] = (career_totals["FGM"] / career_totals["FGA"] * 100) if career_totals["FGA"] > 0 else 0
+    career_averages["3P%"] = (career_totals["FG3M"] / career_totals["FG3A"] * 100) if career_totals["FG3A"] > 0 else 0
     career_averages["TS%"] = (
         career_totals["PTS"] / (2 * (career_totals["FGA"] + 0.44 * career_totals["FTA"]))
         if (career_totals["FGA"] + 0.44 * career_totals["FTA"]) > 0
         else 0
     )
-    career_averages["FT%"] = career_totals["FT_PCT"]
+    career_averages["FT%"] = (career_totals["FTM"] / career_totals["FTA"] * 100) if career_totals["FTA"] > 0 else 0
 
     # Advanced metrics
     career_averages["PER"] = (
@@ -201,6 +201,7 @@ def remove_multiple_seasons(df: pd.DataFrame):
     df = df.drop_duplicates(subset=["PLAYER_ID", "SEASON_ID"], keep="last")
     return df
 
+
 def process_player_file(file: str, overwrite_all_metrics: bool):
     try:
         file_path = os.path.join(settings.RAW_NBA_DATA_PATH, file)
@@ -219,7 +220,6 @@ def process_player_metrics_in_processes(overwrite_all_metrics: bool = False):
     )
 
     all_raw_files = os.listdir(settings.RAW_NBA_DATA_PATH)
-
 
     # Use ProcessPoolExecutor for CPU-heavy tasks
     with ProcessPoolExecutor(max_workers=settings.MAX_WORKERS) as executor:
