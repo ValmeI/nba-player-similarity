@@ -76,7 +76,7 @@ def fetch_all_players_from_local_files(data_dir: str):
         return None
 
 
-def calculate_career_averages_dask(player_stats_df: pd.DataFrame):
+def calculate_career_averages(player_stats_df: pd.DataFrame):
     career_totals = player_stats_df.sum(numeric_only=True)
     total_games_played = career_totals["GP"]
     if total_games_played == 0:
@@ -103,6 +103,7 @@ def calculate_career_averages_dask(player_stats_df: pd.DataFrame):
 
     # Shooting percentages
     career_averages["FG%"] = career_totals["FGM"] / career_totals["FGA"] if career_totals["FGA"] > 0 else 0
+    career_averages["3P%"] = career_totals["FG3M"] / career_totals["FG3A"] if career_totals["FG3A"] > 0 else 0
     career_averages["TS%"] = (
         career_totals["PTS"] / (2 * (career_totals["FGA"] + 0.44 * career_totals["FTA"]))
         if (career_totals["FGA"] + 0.44 * career_totals["FTA"]) > 0
@@ -173,9 +174,27 @@ def add_all_player_metrics_to_parquet(df: pd.DataFrame, player_name: str, overwr
     logger.debug(f"Adding all player metrics to {player_name} with DataFrame: \n{df}")
     df = fill_missing_values(df)
     df = remove_multiple_seasons(df)
-    df_career_stats = calculate_career_averages_dask(df).round(1)
+    df_career_stats = calculate_career_averages(df)
+    df_career_stats = round_career_averages(df_career_stats)
+    logger.debug(f"rounded career stats:\n{df_career_stats}")
+    #TODO: remove later
+    #print(df_career_stats.dtypes)
+    #for index, row in df_career_stats.iterrows():
+    #    print(row)
     os.makedirs(settings.PROCESSED_NBA_DATA_PATH, exist_ok=True)
     df_career_stats.to_parquet(f"{processed_file_path}", index=False)
+
+
+def round_career_averages(df: pd.DataFrame) -> pd.DataFrame:
+    # Identify percentage columns to exclude from initial rounding
+    pct_cols = [col for col in df.columns if '%' in col or 'PER' == col or 'RATIO' in col]
+    numeric_cols = df.select_dtypes(include=['float', 'int']).columns.difference(pct_cols)
+    df[numeric_cols] = df[numeric_cols].round(1)
+    # Round the 'PCT' column to 3 decimal places
+    for col in df.columns:
+        if '%' in col or 'PER' in col or 'RATIO' in col:
+            df[col] = df[col].astype(float).round(3)  # Convert to float and round
+    return df
 
 
 def remove_multiple_seasons(df: pd.DataFrame):

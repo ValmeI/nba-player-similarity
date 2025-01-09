@@ -16,6 +16,7 @@ from shared.utils.app_logger import logger
 
 
 API_BASE_URL = f"http://{settings.FAST_API_HOST}:{settings.FAST_API_PORT}"
+st.set_page_config(layout="wide")  # Enables wide screen mode
 
 
 def initialize_session_state():
@@ -27,12 +28,15 @@ def initialize_session_state():
 
 def display_chat_messages():
     # enumerate to get unique key for each message by combining the role
-    # To avoid StreamlitDuplicateElementId error
     for i, msg in enumerate(st.session_state["messages"]):
-        message(msg["content"], is_user=(msg["role"] == "user"), key=f"{msg['role']}_{i}")
+        if msg.get("type") == "html":
+            # Render HTML messages safely
+            st.markdown(msg["content"], unsafe_allow_html=True)
+        else:
+            # Render plain text messages
+            message(msg["content"], is_user=(msg["role"] == "user"), key=f"{msg['role']}_{i}")
 
 
-@st.cache_data
 def fetch_similar_players(requested_player_name):
     logger.info(f"Fetching similar players for: {requested_player_name}")
     try:
@@ -45,7 +49,6 @@ def fetch_similar_players(requested_player_name):
         return {"error": f"Error connecting to the server: {e}"}
 
 
-@st.cache_data
 def fetch_user_input_player_stats(requested_player_name):
     logger.info(f"Fetching career stats for: {requested_player_name}")
     try:
@@ -75,15 +78,26 @@ def handle_user_input():
                 if "error" in similar_players_result
                 else fetch_user_input_player_stats_result["error"]
             )
+            # Add plain text response for errors
+            st.session_state["messages"].append({"role": "assistant", "content": reply})
         else:
             # Prepare data for the response
             similar_players = [
                 {
                     "player_name": player["player_name"],
-                    "points_per_game": player["points_per_game"],
-                    "assists_per_game": player["assists_per_game"],
-                    "rebounds_per_game": player["rebounds_per_game"],
-                    "similarity_score": player["similarity_score"],
+                    "points_per_game": round(player["points_per_game"], 1),
+                    "assists_per_game": round(player["assists_per_game"],),
+                    "rebounds_per_game": round(player["rebounds_per_game"]),
+                    "blocks_per_game": round(player["blocks_per_game"]),
+                    "steals_per_game": round(player["steals_per_game"]),
+                    "true_shooting_percentage": player["true_shooting_percentage"]*100,
+                    "field_goal_percentage": player["field_goal_percentage"]*100,
+                    "3 point percentage": player["three_point_percentage"]*100,
+                    "free_throw_percentage": player["free_throw_percentage"]*100,
+                    "last_played_season": player["last_played_season"],
+                    "last_played_age": player["last_played_age"],
+                    "total_seasons": player["total_seasons"],
+                    "similarity_score": player["similarity_score"]*100,
                 }
                 for player in similar_players_result
             ]
@@ -91,28 +105,57 @@ def handle_user_input():
             summary = f"{user_input} shares similarities with {', '.join([player['player_name'] for player in similar_players])} based on scoring and playing style."
 
             # Generate the detailed response
-            reply = generate_similar_players_response(user_input, similar_players, summary)
+            html_reply = generate_similar_players_response(user_input, similar_players, summary)
 
-        # Add the assistant's response to the chat history
-        st.session_state["messages"].append({"role": "assistant", "content": reply})
+            # Add HTML response
+            st.session_state["messages"].append({"role": "assistant", "content": html_reply, "type": "html"})
 
         # Clear the input field
         st.session_state["user_input"] = ""
 
 
 def generate_similar_players_response(player_name, similar_players, summary):
-    prompt = f"Here are players similar to {player_name}:\n\n"
-    prompt += "Player Comparison:\n"
-    prompt += "Player               Points/Game   Assists/Game   Rebounds/Game   Similarity\n"
-    prompt += "---------------------------------------------------------------------------\n"
-
-    for player in similar_players:
-        prompt += f"{player['player_name']: <20} {player['points_per_game']: <15} {player['assists_per_game']: <15} {player['rebounds_per_game']: <15} {player['similarity_score']:.2f}%\n"
-
-    prompt += "\nSummary:\n"
-    prompt += summary
-
-    return prompt
+    html_content = f"""
+        <h2>Here are players similar to {player_name}:</h2>
+        <h3>Player Comparison:</h3>
+        <table border='1'>
+            <tr>
+                <th>Player</th>
+                <th>Points/Game</th>
+                <th>Assists/Game</th>
+                <th>Rebounds/Game</th>
+                <th>Blocks/Game</th>
+                <th>Steals/Game</th>
+                <th>True Shooting Percentage</th>
+                <th>Field Goal Percentage</th>
+                <th>3 Point Percentage</th>
+                <th>Free Throw Percentage</th>
+                <th>Last Played Season</th>
+                <th>Last Played Age</th>
+                <th>Total Seasons</th>
+                <th>Similarity Score</th>
+            </tr>
+            {''.join([
+                f'<tr><td>{player["player_name"]}</td>'
+                f'<td>{player["points_per_game"]}</td>'
+                f'<td>{player["assists_per_game"]}</td>'
+                f'<td>{player["rebounds_per_game"]}</td>'
+                f'<td>{player["blocks_per_game"]}</td>'
+                f'<td>{player["steals_per_game"]}</td>'
+                f'<td>{player["true_shooting_percentage"]:.2f}%</td>'
+                f'<td>{player["free_throw_percentage"]:.2f}%</td>'
+                f'<td>{player["field_goal_percentage"]:.2f}%</td>'
+                f'<td>{player["last_played_season"]}</td>'
+                f'<td>{player["last_played_age"]}</td>'
+                f'<td>{player["total_seasons"]}</td>'
+                f'<td>{player["similarity_score"]:.2f}%</td></tr>'
+                for player in similar_players
+            ])}
+        </table>
+        <h3>Summary:</h3>
+        <p>{summary}</p>
+    """
+    return html_content
 
 
 def main():
@@ -129,8 +172,6 @@ def main():
     # Trigger the function manually if new input is detected
     if user_input and st.session_state["user_input"] != user_input:
         handle_user_input()
-
-    # streamlit run /home/valme/git/nba-player-similarity/frontend/src/app.py --server.headless true
 
 
 if __name__ == "__main__":

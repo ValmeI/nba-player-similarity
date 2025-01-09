@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     QDRANT_VECTOR_SEARCH_LIMIT: int = Field(..., gt=0)
     QDRANT_VECTOR_SEARCH_SCORE_THRESHOLD: float = Field(..., ge=0.0, le=1.0)
     QDRANT_VECTOR_SIZE: int = Field(..., gt=0)
+    QDRANT_RESET_COLLECTION: bool
 
     # FastAPI settings
     FAST_API_HOST: str
@@ -42,6 +43,11 @@ class Settings(BaseSettings):
     # Data paths
     RAW_NBA_DATA_PATH: str
     PROCESSED_NBA_DATA_PATH: str
+    
+    # NBA Data Loading settings
+    FETCH_RAW_DATA_FETCH: bool
+    PROCESS_ALL_PLAYERS_METRIC: bool
+    OWERWRITE_PLAYER_METRICS_IF_EXISTS: bool
 
     # Logging settings
     LOG_LEVEL: LogLevel

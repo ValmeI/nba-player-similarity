@@ -5,7 +5,6 @@ from shared.config import settings
 import time
 
 if __name__ == "__main__":
-    RESET_COLLECTION = True
     start_time = time.time()
     start_datetime = datetime.datetime.now()
     logger.info(f"Starting data fetching process on {start_datetime}")
@@ -16,7 +15,7 @@ if __name__ == "__main__":
     ) as qdrant_object:
         qdrant_object.initialize_qdrant_collection(
             vector_size=settings.QDRANT_VECTOR_SIZE,
-            reset_collection=RESET_COLLECTION,  # True to allow duplication of the data
+            reset_collection=settings.QDRANT_RESET_COLLECTION,  # True to allow duplication of the data
         )
         qdrant_object.store_players_embedding(data_dir=folder_path)
         logger.info(

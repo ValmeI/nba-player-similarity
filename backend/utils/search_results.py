@@ -23,6 +23,8 @@ def format_similar_players_search_result(search_player_name, search_result: list
             "blocks_per_game": result.payload.get("BLK_PER_GAME"),
             "turnovers_per_game": result.payload.get("TOV_PER_GAME"),
             "minutes_per_game": result.payload.get("MIN_PER_GAME"),
+            "field_goal_percentage": result.payload.get("FG%"),
+            "free_throw_percentage": result.payload.get("FT%"),
             "true_shooting_percentage": result.payload.get("TS%"),
             "effective_field_goal_percentage": result.payload.get("EFG%"),
             "player_efficiency_rating": result.payload.get("PER"),
@@ -57,6 +59,8 @@ def format_user_requested_player_career_stats(search_player_name, search_result:
             "turnovers_per_game": result.payload.get("TOV_PER_GAME"),
             "minutes_per_game": result.payload.get("MIN_PER_GAME"),
             "true_shooting_percentage": result.payload.get("TS%"),
+            "free_throw_percentage": result.payload.get("FT%"),
+            "field_goal_percentage": result.payload.get("FG%"),
             "effective_field_goal_percentage": result.payload.get("EFG%"),
             "player_efficiency_rating": result.payload.get("PER"),
         }
