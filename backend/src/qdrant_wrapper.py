@@ -64,6 +64,7 @@ class QdrantClientWrapper:
                 "TS%": float(row["TS%"]),
                 "EFG%": float(row["EFG%"]),
                 "FG%": float(row["FG%"]),
+                "3P%": float(row["3P%"]),
                 "FT%": float(row["FT%"]),
                 "PER": float(row["PER"]),
                 "WS/48": float(row["WS/48"]),
@@ -144,7 +145,7 @@ class QdrantClientWrapper:
             collection_name=self.collection_name,
             scroll_filter={"must": [{"key": "PLAYER_NAME_LOWER_CASE", "match": {"value": player_name_lower}}]},
             with_vectors=True,  # we need the vector to search for the player
-            with_payload=True, # Need payload for stats or embeddings
+            with_payload=True,  # Need payload for stats or embeddings
             limit=1,  # Only fetch one point
         )
 

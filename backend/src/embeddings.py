@@ -24,6 +24,7 @@ NUMERIC_COLUMNS = [
     "TS%",  # True shooting percentage
     "EFG%",  # Effective field goal percentage
     "FG%",  # Field goal percentage
+    "3P%",  # Three point percentage
     "FT%",  # Free throw percentage
     "PER",  # Player efficiency rating
     "WS/48",  # Win shares per 48 minutes

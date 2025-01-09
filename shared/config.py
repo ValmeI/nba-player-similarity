@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     LOG_ERRORS_TO_SEPARATE_FILE: bool
 
     # Threading settings
-    MAX_THREADING_WORKERS: int = Field(..., gt=0)
+    MAX_WORKERS: int = Field(..., gt=0)
 
     # Fuzzy matching settings
     FUZZ_THRESHOLD_LOCAL_STATS_FILE: int = Field(..., ge=0, le=100)
@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     # Data paths
     RAW_NBA_DATA_PATH: str
     PROCESSED_NBA_DATA_PATH: str
-    
+
     # NBA Data Loading settings
     FETCH_RAW_DATA_FETCH: bool
     PROCESS_ALL_PLAYERS_METRIC: bool

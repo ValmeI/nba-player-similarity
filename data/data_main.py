@@ -2,14 +2,14 @@ import time
 from datetime import datetime
 from shared.utils.app_logger import logger
 from data.get_nba_data import fetch_all_players_stats_in_threads
-from data.process_data import process_player_metrics_in_threads
+from data.process_data import process_player_metrics_in_processes
 import os
 from shared.config import settings
 
 
 if __name__ == "__main__":
     print("Starting data fetching process...")
-    
+
     # NB! Next part is about fetching all players raw data
     if settings.FETCH_RAW_DATA_FETCH:
         start_time = time.perf_counter()
@@ -26,4 +26,4 @@ if __name__ == "__main__":
     # NB! Next part is about processing all players metrics
     # In case u want to process all players metrics again
     if settings.PROCESS_ALL_PLAYERS_METRIC:
-        process_player_metrics_in_threads(settings.OWERWRITE_PLAYER_METRICS_IF_EXISTS)
+        process_player_metrics_in_processes(settings.OWERWRITE_PLAYER_METRICS_IF_EXISTS)

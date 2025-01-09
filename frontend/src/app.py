@@ -61,63 +61,103 @@ def fetch_user_input_player_stats(requested_player_name):
         return {"error": f"Error connecting to the server: {e}"}
 
 
-def handle_user_input():
-    user_input = st.session_state.user_input.strip()
-    logger.info(f"User input received: {user_input}")
-    if user_input:
-        # Add user message to the chat history
-        st.session_state["messages"].append({"role": "user", "content": user_input})
-
-        # Call the API with the player's name
-        fetch_user_input_player_stats_result = fetch_user_input_player_stats(user_input)
-        similar_players_result = fetch_similar_players(user_input)
-
-        if "error" in similar_players_result or "error" in fetch_user_input_player_stats_result:
-            reply = (
-                similar_players_result["error"]
-                if "error" in similar_players_result
-                else fetch_user_input_player_stats_result["error"]
-            )
-            # Add plain text response for errors
-            st.session_state["messages"].append({"role": "assistant", "content": reply})
-        else:
-            # Prepare data for the response
-            similar_players = [
-                {
-                    "player_name": player["player_name"],
-                    "points_per_game": round(player["points_per_game"], 1),
-                    "assists_per_game": round(player["assists_per_game"],),
-                    "rebounds_per_game": round(player["rebounds_per_game"]),
-                    "blocks_per_game": round(player["blocks_per_game"]),
-                    "steals_per_game": round(player["steals_per_game"]),
-                    "true_shooting_percentage": player["true_shooting_percentage"]*100,
-                    "field_goal_percentage": player["field_goal_percentage"]*100,
-                    "3 point percentage": player["three_point_percentage"]*100,
-                    "free_throw_percentage": player["free_throw_percentage"]*100,
-                    "last_played_season": player["last_played_season"],
-                    "last_played_age": player["last_played_age"],
-                    "total_seasons": player["total_seasons"],
-                    "similarity_score": player["similarity_score"]*100,
-                }
-                for player in similar_players_result
-            ]
-
-            summary = f"{user_input} shares similarities with {', '.join([player['player_name'] for player in similar_players])} based on scoring and playing style."
-
-            # Generate the detailed response
-            html_reply = generate_similar_players_response(user_input, similar_players, summary)
-
-            # Add HTML response
-            st.session_state["messages"].append({"role": "assistant", "content": html_reply, "type": "html"})
-
-        # Clear the input field
-        st.session_state["user_input"] = ""
+def get_user_input_stats(user_input):
+    user_stats_result = fetch_user_input_player_stats(user_input)
+    logger.debug(f"User stats result: {user_stats_result} for user input: {user_input}")
+    if "error" in user_stats_result:
+        return {"error": user_stats_result["error"]}
+    else:
+        user_stats_result_player = user_stats_result[0]
+        return [
+            {
+                "player_name": user_stats_result_player["searched_player"]["player_name"],
+                "points_per_game": round(user_stats_result_player["points_per_game"], 1),
+                "assists_per_game": round(
+                    user_stats_result_player["assists_per_game"],
+                ),
+                "rebounds_per_game": round(user_stats_result_player["rebounds_per_game"]),
+                "blocks_per_game": round(user_stats_result_player["blocks_per_game"]),
+                "steals_per_game": round(user_stats_result_player["steals_per_game"]),
+                "true_shooting_percentage": user_stats_result_player["true_shooting_percentage"],
+                "field_goal_percentage": user_stats_result_player["field_goal_percentage"],
+                "three_point_percentage": user_stats_result_player["three_point_percentage"],
+                "free_throw_percentage": user_stats_result_player["free_throw_percentage"],
+                "last_played_season": user_stats_result_player["last_played_season"],
+                "last_played_age": user_stats_result_player["last_played_age"],
+                "total_seasons": user_stats_result_player["total_seasons"],
+            }
+        ]
 
 
-def generate_similar_players_response(player_name, similar_players, summary):
+def get_similar_player_stats(user_stats):
+    similar_players_result = fetch_similar_players(user_stats[0]["player_name"])
+    logger.debug(f"Similar players result: {similar_players_result} for player: {user_stats[0]['player_name']}")
+    if "error" in similar_players_result:
+        return {"error": similar_players_result["error"]}
+    else:
+        return [
+            {
+                "player_name": player["player_name"],
+                "points_per_game": round(player["points_per_game"], 1),
+                "assists_per_game": round(
+                    player["assists_per_game"],
+                ),
+                "rebounds_per_game": round(player["rebounds_per_game"]),
+                "blocks_per_game": round(player["blocks_per_game"]),
+                "steals_per_game": round(player["steals_per_game"]),
+                "true_shooting_percentage": player["true_shooting_percentage"],
+                "field_goal_percentage": player["field_goal_percentage"],
+                "three_point_percentage": player["three_point_percentage"],
+                "free_throw_percentage": player["free_throw_percentage"],
+                "last_played_season": player["last_played_season"],
+                "last_played_age": player["last_played_age"],
+                "total_seasons": player["total_seasons"],
+                "similarity_score": player["similarity_score"] * 100,
+            }
+            for player in similar_players_result
+        ]
+
+
+def format_stats_for_display(user_stats, similar_player_stats):
+    summary = f"{user_stats[0]['player_name']} shares similarities with {', '.join([player['player_name'] for player in similar_player_stats])} based on scoring and playing style."
+
     html_content = f"""
-        <h2>Here are players similar to {player_name}:</h2>
-        <h3>Player Comparison:</h3>
+        <h2>Here are players similar to {user_stats[0]['player_name']}:</h2>
+        <h3>User Input Player Stats:</h3>
+        <table border='1'>
+            <tr>
+                <th>Player</th>
+                <th>Points/Game</th>
+                <th>Assists/Game</th>
+                <th>Rebounds/Game</th>
+                <th>Blocks/Game</th>
+                <th>Steals/Game</th>
+                <th>True Shooting Percentage</th>
+                <th>Field Goal Percentage</th>
+                <th>3 Point Percentage</th>
+                <th>Free Throw Percentage</th>
+                <th>Last Played Season</th>
+                <th>Last Played Age</th>
+                <th>Total Seasons</th>
+            </tr>
+            {''.join([
+                f'<tr><td>{player["player_name"]}</td>'
+                f'<td>{player["points_per_game"]}</td>'
+                f'<td>{player["assists_per_game"]}</td>'
+                f'<td>{player["rebounds_per_game"]}</td>'
+                f'<td>{player["blocks_per_game"]}</td>'
+                f'<td>{player["steals_per_game"]}</td>'
+                f'<td>{player["true_shooting_percentage"]:.2f}%</td>'
+                f'<td>{player["free_throw_percentage"]:.2f}%</td>'
+                f'<td>{player["field_goal_percentage"]:.2f}%</td>'
+                f'<td>{player["three_point_percentage"]:.2f}%</td>'
+                f'<td>{player["last_played_season"]}</td>'
+                f'<td>{player["last_played_age"]}</td>'
+                f'<td>{player["total_seasons"]}</td></tr>'
+                for player in user_stats
+            ])}
+        </table>
+        <h3>Similar Players Stats:</h3>
         <table border='1'>
             <tr>
                 <th>Player</th>
@@ -143,19 +183,45 @@ def generate_similar_players_response(player_name, similar_players, summary):
                 f'<td>{player["blocks_per_game"]}</td>'
                 f'<td>{player["steals_per_game"]}</td>'
                 f'<td>{player["true_shooting_percentage"]:.2f}%</td>'
-                f'<td>{player["free_throw_percentage"]:.2f}%</td>'
                 f'<td>{player["field_goal_percentage"]:.2f}%</td>'
+                f'<td>{player["three_point_percentage"]:.2f}%</td>'
+                f'<td>{player["free_throw_percentage"]:.2f}%</td>'
                 f'<td>{player["last_played_season"]}</td>'
                 f'<td>{player["last_played_age"]}</td>'
                 f'<td>{player["total_seasons"]}</td>'
                 f'<td>{player["similarity_score"]:.2f}%</td></tr>'
-                for player in similar_players
+                for player in similar_player_stats
             ])}
         </table>
         <h3>Summary:</h3>
         <p>{summary}</p>
     """
     return html_content
+
+
+def handle_user_input():
+    user_input = st.session_state.user_input.strip()
+    logger.info(f"User input received: {user_input}")
+    if user_input:
+        # Add user message to the chat history
+        st.session_state["messages"].append({"role": "user", "content": user_input})
+
+        user_stats = get_user_input_stats(user_input)
+        similar_player_stats = get_similar_player_stats(user_stats)
+
+        if "error" in user_stats or "error" in similar_player_stats:
+            reply = user_stats["error"] if "error" in user_stats else similar_player_stats["error"]
+            # Add plain text response for errors
+            st.session_state["messages"].append({"role": "assistant", "content": reply})
+        else:
+            # Generate the detailed response
+            html_reply = format_stats_for_display(user_stats, similar_player_stats)
+
+            # Add HTML response
+            st.session_state["messages"].append({"role": "assistant", "content": html_reply, "type": "html"})
+
+        # Clear the input field
+        st.session_state["user_input"] = ""
 
 
 def main():

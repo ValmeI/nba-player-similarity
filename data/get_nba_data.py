@@ -48,7 +48,7 @@ def fetch_all_players_stats_in_threads():
     all_players = players.get_players()
     logger.info(f"Found {len(all_players)} players in NBA. Fetching raw NBA data...")
 
-    with ThreadPoolExecutor(max_workers=settings.MAX_THREADING_WORKERS) as executor:
+    with ThreadPoolExecutor(max_workers=settings.MAX_WORKERS) as executor:
         futures = {
             executor.submit(fetch_and_save_player_stats, player["full_name"]): player["full_name"]
             for player in all_players

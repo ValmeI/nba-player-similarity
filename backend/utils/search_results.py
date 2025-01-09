@@ -25,6 +25,7 @@ def format_similar_players_search_result(search_player_name, search_result: list
             "minutes_per_game": result.payload.get("MIN_PER_GAME"),
             "field_goal_percentage": result.payload.get("FG%"),
             "free_throw_percentage": result.payload.get("FT%"),
+            "three_point_percentage": result.payload.get("3P%"),
             "true_shooting_percentage": result.payload.get("TS%"),
             "effective_field_goal_percentage": result.payload.get("EFG%"),
             "player_efficiency_rating": result.payload.get("PER"),
@@ -61,6 +62,7 @@ def format_user_requested_player_career_stats(search_player_name, search_result:
             "true_shooting_percentage": result.payload.get("TS%"),
             "free_throw_percentage": result.payload.get("FT%"),
             "field_goal_percentage": result.payload.get("FG%"),
+            "three_point_percentage": result.payload.get("3P%"),
             "effective_field_goal_percentage": result.payload.get("EFG%"),
             "player_efficiency_rating": result.payload.get("PER"),
         }

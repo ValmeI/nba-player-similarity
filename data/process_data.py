@@ -1,4 +1,4 @@
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, as_completed
 import time
 from datetime import datetime
 import pandas as pd
@@ -7,6 +7,7 @@ from backend.utils.fuzz_utils import find_top_matches
 import os
 from shared.utils.app_logger import logger
 from tqdm import tqdm
+from icecream import ic
 
 
 def fill_missing_values(df: pd.DataFrame):
@@ -102,8 +103,8 @@ def calculate_career_averages(player_stats_df: pd.DataFrame):
     }
 
     # Shooting percentages
-    career_averages["FG%"] =career_totals["FG_PCT"]
-    career_averages["3P%"] = career_totals["FG3_PCT"]
+    career_averages["FG%"] = career_totals["FG_PCT"] if career_totals["FGA"] > 0 else 0
+    career_averages["3P%"] = career_totals["FG3_PCT"] if career_totals["FG3A"] > 0 else 0
     career_averages["TS%"] = (
         career_totals["PTS"] / (2 * (career_totals["FGA"] + 0.44 * career_totals["FTA"]))
         if (career_totals["FGA"] + 0.44 * career_totals["FTA"]) > 0
@@ -177,21 +178,21 @@ def add_all_player_metrics_to_parquet(df: pd.DataFrame, player_name: str, overwr
     df_career_stats = calculate_career_averages(df)
     df_career_stats = round_career_averages(df_career_stats)
     logger.debug(f"rounded career stats:\n{df_career_stats}")
-    #TODO: remove later
-    #print(df_career_stats.dtypes)
-    #for index, row in df_career_stats.iterrows():
-    #    print(row)
+    if settings.LOG_LEVEL == "DEBUG":  # left in for debugging
+        ic(df_career_stats.dtypes)
+        for _, row in df_career_stats.iterrows():
+            ic(row)
     os.makedirs(settings.PROCESSED_NBA_DATA_PATH, exist_ok=True)
     df_career_stats.to_parquet(f"{processed_file_path}", index=False)
 
 
 def round_career_averages(df: pd.DataFrame) -> pd.DataFrame:
     # Identify percentage columns to exclude from initial rounding
-    pct_cols = [col for col in df.columns if '%' in col or 'PER' == col or 'RATIO' in col]
-    numeric_cols = df.select_dtypes(include=['float', 'int']).columns.difference(pct_cols)
+    pct_cols = [col for col in df.columns if "%" in col or "PER" == col or "RATIO" in col]
+    numeric_cols = df.select_dtypes(include=["float", "int"]).columns.difference(pct_cols)
     df[numeric_cols] = df[numeric_cols].round(1)
     df[pct_cols] = df[pct_cols].astype(float).round(3)  # Convert to float and round
-    
+
     return df
 
 
@@ -200,8 +201,18 @@ def remove_multiple_seasons(df: pd.DataFrame):
     df = df.drop_duplicates(subset=["PLAYER_ID", "SEASON_ID"], keep="last")
     return df
 
+def process_player_file(file: str, overwrite_all_metrics: bool):
+    try:
+        file_path = os.path.join(settings.RAW_NBA_DATA_PATH, file)
+        player_name = file.split("_career_stats.parquet")[0].replace("_", " ")  # Temporary fix
+        df = pd.read_parquet(file_path)
+        add_all_player_metrics_to_parquet(df, player_name, overwrite_all_metrics=overwrite_all_metrics)
+    except Exception as e:
+        logger.error(f"Error processing file {file}: {e}")
+    return file  # Return the processed file name for tracking
 
-def process_player_metrics_in_threads(overwrite_all_metrics: bool = False):
+
+def process_player_metrics_in_processes(overwrite_all_metrics: bool = False):
     start_time = time.perf_counter()
     logger.info(
         f"Starting to process all players metrics on {datetime.now()} and add them to folder {settings.PROCESSED_NBA_DATA_PATH}"
@@ -209,22 +220,15 @@ def process_player_metrics_in_threads(overwrite_all_metrics: bool = False):
 
     all_raw_files = os.listdir(settings.RAW_NBA_DATA_PATH)
 
-    def process_player_file(file):
-        try:
-            file_path = os.path.join(settings.RAW_NBA_DATA_PATH, file)
-            player_name = file.split("_career_stats.parquet")[0].replace("_", " ")  # Temporary fix
-            df = pd.read_parquet(file_path)
-            add_all_player_metrics_to_parquet(df, player_name, overwrite_all_metrics=overwrite_all_metrics)
-        except Exception as e:
-            logger.error(f"Error processing file {file}: {e}")
 
-    with ThreadPoolExecutor(max_workers=settings.MAX_THREADING_WORKERS) as executor:
-        futures = {executor.submit(process_player_file, file): file for file in all_raw_files}
-        # Wrap the `as_completed` loop with tqdm for progress tracking
+    # Use ProcessPoolExecutor for CPU-heavy tasks
+    with ProcessPoolExecutor(max_workers=settings.MAX_WORKERS) as executor:
+        futures = {executor.submit(process_player_file, file, overwrite_all_metrics): file for file in all_raw_files}
+        # Use tqdm to show progress
         for future in tqdm(as_completed(futures), total=len(futures), desc="Processing Players", unit="player"):
             file = futures[future]
             try:
-                future.result()  # Raise exceptions if they occurred during thread execution
+                future.result()  # Raise exceptions if they occurred during process execution
                 logger.debug(f"Successfully processed file: {file}")
             except Exception as e:
                 logger.error(f"Error processing file {file}: {e}")
