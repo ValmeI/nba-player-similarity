@@ -23,7 +23,7 @@ def get_root():
 
 def generate_similar_players_search_query_vector(player_name: str):
     try:
-        query_vector, _ = client.search_players_embeddings_by_name(player_name.lower())
+        query_vector, _ = client.search_players_by_name(player_name.lower())
         return query_vector
     except Exception as e:
         logger.error(f"Error searching for player {player_name} embeddings in Qdrant: {e}")
@@ -33,7 +33,7 @@ def generate_similar_players_search_query_vector(player_name: str):
 # Just for simplicity, calling this code twice, one for emmbeddings and one for career stats
 def fetch_user_input_player_stats(player_name: str):
     try:
-        _, career_stats = client.search_players_embeddings_by_name(player_name.lower())
+        _, career_stats = client.search_players_by_name(player_name.lower())
         return career_stats
     except Exception as e:
         logger.error(f"Error searching for player {player_name} stats in Qdrant: {e}")

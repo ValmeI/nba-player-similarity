@@ -102,14 +102,14 @@ def calculate_career_averages(player_stats_df: pd.DataFrame):
     }
 
     # Shooting percentages
-    career_averages["FG%"] = career_totals["FGM"] / career_totals["FGA"] if career_totals["FGA"] > 0 else 0
-    career_averages["3P%"] = career_totals["FG3M"] / career_totals["FG3A"] if career_totals["FG3A"] > 0 else 0
+    career_averages["FG%"] =career_totals["FG_PCT"]
+    career_averages["3P%"] = career_totals["FG3_PCT"]
     career_averages["TS%"] = (
         career_totals["PTS"] / (2 * (career_totals["FGA"] + 0.44 * career_totals["FTA"]))
         if (career_totals["FGA"] + 0.44 * career_totals["FTA"]) > 0
         else 0
     )
-    career_averages["FT%"] = career_totals["FTM"] / career_totals["FTA"] if career_totals["FTA"] > 0 else 0
+    career_averages["FT%"] = career_totals["FT_PCT"]
 
     # Advanced metrics
     career_averages["PER"] = (
@@ -190,10 +190,8 @@ def round_career_averages(df: pd.DataFrame) -> pd.DataFrame:
     pct_cols = [col for col in df.columns if '%' in col or 'PER' == col or 'RATIO' in col]
     numeric_cols = df.select_dtypes(include=['float', 'int']).columns.difference(pct_cols)
     df[numeric_cols] = df[numeric_cols].round(1)
-    # Round the 'PCT' column to 3 decimal places
-    for col in df.columns:
-        if '%' in col or 'PER' in col or 'RATIO' in col:
-            df[col] = df[col].astype(float).round(3)  # Convert to float and round
+    df[pct_cols] = df[pct_cols].astype(float).round(3)  # Convert to float and round
+    
     return df
 
 
