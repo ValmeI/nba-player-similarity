@@ -8,7 +8,7 @@ from shared.config import settings
 
 
 if __name__ == "__main__":
-    print("Starting data fetching process...")
+    logger.info(f"Starting data fetching process on {datetime.now()}")
 
     # NB! Next part is about fetching all players raw data
     if settings.FETCH_RAW_DATA_FETCH:

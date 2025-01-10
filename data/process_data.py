@@ -38,7 +38,6 @@ def fill_missing_values(df: pd.DataFrame):
         ]
     }
 
-    # Ensure all columns in numeric_columns are numeric
     for column in categorization["numeric_columns"]:
         df[column] = pd.to_numeric(df[column], errors="coerce")
 
@@ -187,11 +186,10 @@ def add_all_player_metrics_to_parquet(df: pd.DataFrame, player_name: str, overwr
 
 
 def round_career_averages(df: pd.DataFrame) -> pd.DataFrame:
-    # Identify percentage columns to exclude from initial rounding
     pct_cols = [col for col in df.columns if "%" in col or "PER" == col or "RATIO" in col]
     numeric_cols = df.select_dtypes(include=["float", "int"]).columns.difference(pct_cols)
     df[numeric_cols] = df[numeric_cols].round(1)
-    df[pct_cols] = df[pct_cols].astype(float).round(3)  # Convert to float and round
+    df[pct_cols] = df[pct_cols].astype(float).round(3)
 
     return df
 
@@ -205,12 +203,12 @@ def remove_multiple_seasons(df: pd.DataFrame):
 def process_player_file(file: str, overwrite_all_metrics: bool):
     try:
         file_path = os.path.join(settings.RAW_NBA_DATA_PATH, file)
-        player_name = file.split("_career_stats.parquet")[0].replace("_", " ")  # Temporary fix
+        player_name = file.split("_career_stats.parquet")[0].replace("_", " ")
         df = pd.read_parquet(file_path)
         add_all_player_metrics_to_parquet(df, player_name, overwrite_all_metrics=overwrite_all_metrics)
     except Exception as e:
         logger.error(f"Error processing file {file}: {e}")
-    return file  # Return the processed file name for tracking
+    return file
 
 
 def process_player_metrics_in_processes(overwrite_all_metrics: bool = False):
@@ -221,14 +219,12 @@ def process_player_metrics_in_processes(overwrite_all_metrics: bool = False):
 
     all_raw_files = os.listdir(settings.RAW_NBA_DATA_PATH)
 
-    # Use ProcessPoolExecutor for CPU-heavy tasks
     with ProcessPoolExecutor(max_workers=settings.MAX_WORKERS) as executor:
         futures = {executor.submit(process_player_file, file, overwrite_all_metrics): file for file in all_raw_files}
-        # Use tqdm to show progress
         for future in tqdm(as_completed(futures), total=len(futures), desc="Processing Players", unit="player"):
             file = futures[future]
             try:
-                future.result()  # Raise exceptions if they occurred during process execution
+                future.result()
                 logger.debug(f"Successfully processed file: {file}")
             except Exception as e:
                 logger.error(f"Error processing file {file}: {e}")

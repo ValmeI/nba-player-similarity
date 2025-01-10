@@ -4,7 +4,6 @@ import requests
 import streamlit as st
 from streamlit_chat import message
 
-
 project_root = Path(__file__).resolve().parent.parent.parent
 
 # Add project root to PYTHONPATH as streamlit wants to run as "streamlit runapp.py" and not module "python -m  runapp.py"
@@ -13,6 +12,7 @@ if str(project_root) not in sys.path:
 
 from shared.config import settings
 from shared.utils.app_logger import logger
+from frontend.src.llm import generate_analysis
 
 
 API_BASE_URL = f"http://{settings.FAST_API_HOST}:{settings.FAST_API_PORT}"
@@ -37,7 +37,10 @@ def display_chat_messages():
             message(msg["content"], is_user=(msg["role"] == "user"), key=f"{msg['role']}_{i}")
 
 
+@st.cache_data
 def fetch_similar_players(requested_player_name):
+    # Capitalize the player name
+    requested_player_name = requested_player_name.title()
     logger.info(f"Fetching similar players for: {requested_player_name}")
     try:
         with st.spinner("Searching for similar players..."):
@@ -48,8 +51,10 @@ def fetch_similar_players(requested_player_name):
     except requests.exceptions.RequestException as e:
         return {"error": f"Error connecting to the server: {e}"}
 
-
+@st.cache_data
 def fetch_user_input_player_stats(requested_player_name):
+    # Capitalize the player name
+    requested_player_name = requested_player_name.title()
     logger.info(f"Fetching career stats for: {requested_player_name}")
     try:
         with st.spinner("Fetching career stats..."):
@@ -70,7 +75,7 @@ def get_user_input_stats(user_input):
         user_stats_result_player = user_stats_result[0]
         return [
             {
-                "player_name": user_stats_result_player["searched_player"]["player_name"],
+                "player_name": user_stats_result_player["searched_player"]["player_name"].title(),
                 "points_per_game": user_stats_result_player["points_per_game"],
                 "assists_per_game": user_stats_result_player["assists_per_game"],
                 "rebounds_per_game": user_stats_result_player["rebounds_per_game"],
@@ -88,6 +93,8 @@ def get_user_input_stats(user_input):
 
 
 def get_similar_player_stats(user_stats):
+    if 'error' in user_stats:
+        return user_stats
     similar_players_result = fetch_similar_players(user_stats[0]["player_name"])
     logger.debug(f"Similar players result: {similar_players_result} for player: {user_stats[0]['player_name']}")
     if "error" in similar_players_result:
@@ -95,7 +102,7 @@ def get_similar_player_stats(user_stats):
     else:
         return [
             {
-                "player_name": player["player_name"],
+                "player_name": player["player_name"].title(),
                 "points_per_game": player["points_per_game"],
                 "assists_per_game": player["assists_per_game"],
                 "rebounds_per_game": player["rebounds_per_game"],
@@ -115,7 +122,7 @@ def get_similar_player_stats(user_stats):
 
 
 def format_stats_for_display(user_stats, similar_player_stats):
-    summary = f"{user_stats[0]['player_name']} shares similarities with {', '.join([player['player_name'] for player in similar_player_stats])} based on scoring and playing style."
+    llm_summary = generate_analysis(user_stats, similar_player_stats)
 
     html_content = f"""
         <h2>Here are players similar to {user_stats[0]['player_name']}:</h2>
@@ -189,8 +196,8 @@ def format_stats_for_display(user_stats, similar_player_stats):
                 for player in similar_player_stats
             ])}
         </table>
-        <h3>Summary:</h3>
-        <p>{summary}</p>
+        <h3>Summary by LLM:</h3>
+        <p>{llm_summary}</p>
     """
     return html_content
 
@@ -207,13 +214,9 @@ def handle_user_input():
 
         if "error" in user_stats or "error" in similar_player_stats:
             reply = user_stats["error"] if "error" in user_stats else similar_player_stats["error"]
-            # Add plain text response for errors
             st.session_state["messages"].append({"role": "assistant", "content": reply})
         else:
-            # Generate the detailed response
             html_reply = format_stats_for_display(user_stats, similar_player_stats)
-
-            # Add HTML response
             st.session_state["messages"].append({"role": "assistant", "content": html_reply, "type": "html"})
 
         # Clear the input field

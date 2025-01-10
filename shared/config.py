@@ -61,6 +61,13 @@ class Settings(BaseSettings):
     STREAMLIT_INITIAL_MESSAGE: str
     STREAMLIT_INPUT_PLACEHOLDER: str
 
+    # LLM settings
+    LLM_API_KEY: str
+    LLM_MODEL_NAME: str
+    LLM_TEMPERATURE: float
+    LLM_MAX_TOKENS: int
+    LLM_PROMPT_TEMPLATE: str
+
     class Config:
         case_sensitive = True
         env_file = ".env"

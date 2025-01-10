@@ -12,7 +12,6 @@ def delete_collection(collection_name: str, host: str, port: int):
     collections = [c.name for c in client.get_collections().collections]
     print("Existing collections:", collections)
 
-    # Drop collections
     client.delete_collection(collection_name)
     print("Collections after deletion:", [c.name for c in client.get_collections().collections])
 

@@ -153,7 +153,6 @@ class QdrantClientWrapper:
             logger.info(
                 f"Found results: {len(results)} for player '{player_name}' in collection '{self.collection_name}'"
             )
-            print(results)
             logger.debug(
                 f"Found results for player '{player_name}' in collection '{self.collection_name}':\n{pformat(results[0].payload, indent=4)}"
             )
