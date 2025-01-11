@@ -2,15 +2,14 @@ from dotenv import load_dotenv
 from typing import Literal
 from pydantic_settings import BaseSettings
 from pydantic import Field
+import os
 
 
 load_dotenv(override=True)
 
-# Valid log levels that loguru accepts, incase there is typos in the .env and it would make whole code unresponsive
-LogLevel = Literal["TRACE", "DEBUG", "INFO", "SUCCESS", "WARNING", "ERROR", "CRITICAL"]
-
 
 class Settings(BaseSettings):
+
     # Qdrant settings
     QDRANT_HOST: str
     QDRANT_PORT: int
@@ -28,13 +27,16 @@ class Settings(BaseSettings):
     FAST_API_PORT: int
 
     # Logging settings
-    LOG_LEVEL: LogLevel
+    # Valid log levels that loguru accepts, incase there is typos in the .env and it would make whole code unresponsive
+    LOG_LEVEL: Literal["TRACE", "DEBUG", "INFO", "SUCCESS", "WARNING", "ERROR", "CRITICAL"]
     LOG_TO_FILE: bool
     LOG_TO_CONSOLE: bool
     LOG_ERRORS_TO_SEPARATE_FILE: bool
 
-    # Threading settings
-    MAX_WORKERS: int = Field(..., gt=0)
+    # Processing settings, takes account of CPU cores available
+    MAX_WORKERS: int = Field(1, env="MAX_WORKERS")  # Default to 1 if not set
+    cpu_count = os.cpu_count()
+    MAX_WORKERS: int = Field(default=min(MAX_WORKERS, cpu_count), gt=0)
 
     # Fuzzy matching settings
     FUZZ_THRESHOLD_LOCAL_STATS_FILE: int = Field(..., ge=0, le=100)
@@ -48,12 +50,6 @@ class Settings(BaseSettings):
     FETCH_RAW_DATA_FETCH: bool
     PROCESS_ALL_PLAYERS_METRIC: bool
     OWERWRITE_PLAYER_METRICS_IF_EXISTS: bool
-
-    # Logging settings
-    LOG_LEVEL: LogLevel
-    LOG_TO_FILE: bool
-    LOG_TO_CONSOLE: bool
-    LOG_ERRORS_TO_SEPARATE_FILE: bool
 
     # Frontend settings
     API_REQUEST_TIMEOUT: int

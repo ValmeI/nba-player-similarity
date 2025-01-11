@@ -51,6 +51,7 @@ def fetch_similar_players(requested_player_name):
     except requests.exceptions.RequestException as e:
         return {"error": f"Error connecting to the server: {e}"}
 
+
 @st.cache_data
 def fetch_user_input_player_stats(requested_player_name):
     # Capitalize the player name
@@ -93,7 +94,7 @@ def get_user_input_stats(user_input):
 
 
 def get_similar_player_stats(user_stats):
-    if 'error' in user_stats:
+    if "error" in user_stats:
         return user_stats
     similar_players_result = fetch_similar_players(user_stats[0]["player_name"])
     logger.debug(f"Similar players result: {similar_players_result} for player: {user_stats[0]['player_name']}")
