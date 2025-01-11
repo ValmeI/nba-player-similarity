@@ -34,9 +34,8 @@ class Settings(BaseSettings):
     LOG_ERRORS_TO_SEPARATE_FILE: bool
 
     # Processing settings, takes account of CPU cores available
-    MAX_WORKERS: int = Field(1, env="MAX_WORKERS")  # Default to 1 if not set
     cpu_count = os.cpu_count()
-    MAX_WORKERS: int = Field(default=min(MAX_WORKERS, cpu_count), gt=0)
+    MAX_WORKERS: int = Field(default=min(1, cpu_count), gt=0, env="MAX_WORKERS")  # Default to 1 if not set
 
     # Fuzzy matching settings
     FUZZ_THRESHOLD_LOCAL_STATS_FILE: int = Field(..., ge=0, le=100)
@@ -60,7 +59,7 @@ class Settings(BaseSettings):
     # LLM settings
     LLM_API_KEY: str
     LLM_MODEL_NAME: str
-    LLM_TEMPERATURE: float
+    LLM_TEMPERATURE: float = Field(..., ge=0.0, le=1.0)
     LLM_MAX_TOKENS: int
     LLM_PROMPT_TEMPLATE: str
 
