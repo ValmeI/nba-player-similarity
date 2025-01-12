@@ -13,7 +13,4 @@ if __name__ == "__main__":
         reload=True,  # Enable auto-reload on code changes during development
     )
 
-# Future Improvements maybe
-# TODO: Implement Redis cache for player data to improve response times
-# TODO: Add async processing for search operations
-# TODO: Optimize parquet file reading with yield statements for better memory usage
+

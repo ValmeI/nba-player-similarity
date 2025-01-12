@@ -8,7 +8,7 @@ from shared.config import settings
 import pandas as pd
 from tqdm import tqdm
 from pprint import pformat
-from data.process_data import fetch_all_players_from_local_files
+from tasks.data_loading.process_data import fetch_all_players_from_local_files
 
 
 class QdrantClientWrapper:

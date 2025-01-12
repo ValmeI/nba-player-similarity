@@ -12,8 +12,7 @@ if str(project_root) not in sys.path:
 
 from shared.config import settings
 from shared.utils.app_logger import logger
-from frontend.src.llm import generate_analysis
-
+from streamlit_frontend.src.llm import generate_analysis
 
 API_BASE_URL = f"http://{settings.FAST_API_HOST}:{settings.FAST_API_PORT}"
 st.set_page_config(layout="wide")  # Enables wide screen mode

@@ -1,8 +1,8 @@
 import time
 from datetime import datetime
 from shared.utils.app_logger import logger
-from data.get_nba_data import fetch_all_players_stats_in_threads
-from data.process_data import process_player_metrics_in_processes
+from tasks.data_loading.get_nba_data import fetch_all_players_stats_in_threads
+from tasks.data_loading.process_data import process_player_metrics_in_processes
 import os
 from shared.config import settings
 

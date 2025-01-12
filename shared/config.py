@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from typing import Literal
+from typing import Literal, ClassVar
 from pydantic_settings import BaseSettings
 from pydantic import Field
 import os
@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     LOG_ERRORS_TO_SEPARATE_FILE: bool
 
     # Processing settings, takes account of CPU cores available
-    cpu_count = os.cpu_count()
+    cpu_count: ClassVar[int] = os.cpu_count()
     MAX_WORKERS: int = Field(default=min(1, cpu_count), gt=0, env="MAX_WORKERS")  # Default to 1 if not set
 
     # Fuzzy matching settings
