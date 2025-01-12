@@ -2,7 +2,8 @@
 DOCKER_COMPOSE = docker-compose
 CONTAINER_NAME = $(shell docker ps --filter "name=nba-app" --format "{{.Names}}")
 DOCKER_EXEC = docker exec -it $(CONTAINER_NAME)
-REQUIRED_PORTS = 8000 8501
+REQUIRED_PORTS = 8000 8501 6333
+
 
 # ====== Local Development Commands ======
 .PHONY: run-backend run-frontend data-load-local data-ingest-local lint format test kill-ports-local
