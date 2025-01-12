@@ -41,9 +41,17 @@ class Settings(BaseSettings):
     FUZZ_THRESHOLD_LOCAL_STATS_FILE: int = Field(..., ge=0, le=100)
     FUZZ_THRESHOLD_LOCAL_NAME: int = Field(..., ge=0, le=100)
 
-    # Data paths Constants
-    RAW_NBA_DATA_PATH: str = "/nba_data/raw_parquet_files"
-    PROCESSED_NBA_DATA_PATH: str = "/nba_data/processed_parquet_files"
+    # Data paths Constants, (dynamic handling for Docker vs local)
+    IS_DOCKER: bool = Field(default=os.path.exists("/app"), description="Detect if running inside Docker")
+    BASE_DIR: str = Field(default_factory=lambda: "/app" if os.path.exists("/app") else ".")
+    RAW_NBA_DATA_PATH: str = Field(
+        default_factory=lambda: os.path.join("/app" if os.path.exists("/app") else ".", "nba_data/raw_parquet_files")
+    )
+    PROCESSED_NBA_DATA_PATH: str = Field(
+        default_factory=lambda: os.path.join(
+            "/app" if os.path.exists("/app") else ".", "nba_data/processed_parquet_files"
+        )
+    )
 
     # NBA Data Loading settings
     FETCH_RAW_DATA_FETCH: bool
