@@ -1,0 +1,24 @@
+# Ignore Git folder and files
+.git
+.gitignore
+
+# Ignore Python virtual environments
+__pycache__/
+
+# Ignore environment files (only copy what's needed into the container)
+.env_example
+
+# Ignore IDE/editor settings
+*.vscode/
+*.idea/
+.DS_Store
+
+# Ignore other unnecessary files
+*.pyc
+*.pyo
+*.swp
+
+# Exclude from Docker build context
+.env
+logs/
+venv/

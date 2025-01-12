@@ -1,65 +1,101 @@
-# SpendSearch
+# NBA Player Similarity
 
-
-### Known Issues
-
-
-## Backend
-
-### Running the Backend
-
-1. **Install Dependencies**:
-
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-2. **Run the Server**:
-
-   ```bash
-   uvicorn main:app --reload
-   ```
-
-3. **Test the API**:
-   Open your browser and visit:
-   [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs) to access the FastAPI Swagger documentation.
+## Description
+This project analyzes and compares NBA players based on various performance metrics using advanced similarity algorithms to identify comparable players.
 
 ---
 
-## Frontend
+## Installation Instructions
 
-# TODO: Add Streamlit logic
+### 1. Clone the Repository
+```bash
+git clone https://github.com/yourusername/nba-player-similarity.git
+cd nba-player-similarity
+```
 
-## Full Setup Using Docker
-
-### Prerequisites
-
-- Ensure Docker and Docker Compose are installed on your system.
-
-### Steps
-
-1. **Build and Start Services**:
-
-   ```bash
-   docker-compose up --build
-   ```
-
-2. **Access Services**:
-   - **Frontend**: [http://localhost:8501](http://localhost:8501)
-   - **Backend**: [http://localhost:8000/docs](http://localhost:8000/docs)
-   - **Qdrant**: [http://localhost:6333](http://localhost:6333)
-
-3. **Stop Services**:
-
-   ```bash
-   docker-compose down
-   ```
+### 2. Install Dependencies
+```bash
+pip install -r requirements.txt
+```
 
 ---
 
-## To Do
+## Usage
 
-1. Finalize the frontend interface.
-2. Add examples to the API documentation.
-3. Write integration tests for API and frontend.
-4. Optimize Docker configuration for production.
+### Step 1: Load and Process NBA Data
+Run the data loader to fetch and process NBA data:
+```bash
+python -m tasks.data_loading.data_load_main
+```
+
+### Step 2: Set Up Qdrant
+Download and run Qdrant as a Docker container:
+```bash
+docker pull qdrant/qdrant
+docker run -p 6333:6333 qdrant/qdrant
+```
+
+### Step 3: Ingest Data into Qdrant
+Run the data ingestion script to populate Qdrant:
+```bash
+python -m tasks.data_ingesting.ingest_data
+```
+
+### Step 4: Start the Backend Server
+Run the backend server using FastAPI:
+```bash
+python -m backend.run_backend_server_main
+```
+
+### Step 5: Start the Frontend Application
+Launch the Streamlit frontend application:
+```bash
+streamlit run streamlit_frontend/src/app.py
+```
+
+---
+
+## Project Structure Overview
+```plaintext
+nba_project/
+├── backend/                      # Backend (FastAPI)
+│   ├── src/                      # Backend core logic
+│   ├── utils/                    # Backend utilities
+│   ├── run_backend_server_main.py
+│
+├── general_ongoing_dev_scripts/  # Miscellaneous development scripts
+│
+├── logs/                         # Logs for monitoring/debugging
+│
+├── nba_data/                     # Data folder
+│   ├── processed_parquet_files/  # Processed files for Qdrant/analysis
+│   ├── raw_parquet_files/        # Raw data files
+│
+├── shared/                       # Shared utilities across backend/frontend
+│   ├── utils/
+│   ├── config.py
+│
+├── streamlit_frontend/           # Frontend (Streamlit)
+│   ├── src/                      # Streamlit app core
+│
+├── tasks/                        # Scripts for one-off or periodic tasks
+│   ├── data_ingesting/           # Data ingestion-related tasks
+│   │   ├── ingest_data.py        # Main data ingestion script
+│   ├── data_main.py              # Entry point for data tasks
+│   ├── get_nba_data.py           # Raw data fetching
+│
+├── requirements.txt              # Project dependencies
+```
+
+---
+
+## Features
+- **Backend**: Built with FastAPI to handle data ingestion, processing, and API endpoints.
+- **Frontend**: Interactive UI built with Streamlit for visualizing player similarity results.
+- **Data Ingestion**: Automated scripts for fetching and processing NBA player data.
+- **Qdrant Integration**: Stores and retrieves similarity vectors efficiently.
+- **Logs**: Centralized logging for debugging and monitoring.
+
+---
+
+
