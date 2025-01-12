@@ -1,11 +1,7 @@
-from dotenv import load_dotenv
 from typing import Literal, ClassVar
 from pydantic_settings import BaseSettings
 from pydantic import Field
 import os
-
-
-load_dotenv(override=True)
 
 
 class Settings(BaseSettings):
