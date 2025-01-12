@@ -163,3 +163,4 @@ cython_debug/
 nba_data/processed_parquet_files
 nba_data/embedded_parquet_files
 .DS_Store
+.env_docker

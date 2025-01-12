@@ -20,7 +20,7 @@ pip install -r requirements.txt
 
 ---
 
-## Usage locally without Docker
+## Usage Locally Without Docker
 
 ### Step 1: Load and Process NBA Data
 Run the data loader to fetch and process NBA data:
@@ -53,8 +53,9 @@ Launch the Streamlit frontend application:
 streamlit run streamlit_frontend/src/app.py
 ```
 
+---
 
-## Usage with Docker
+## Usage With Docker
 
 ### Step 1: Build Docker Images
 ```bash
@@ -66,12 +67,12 @@ docker-compose build
 docker-compose up
 ```
 
-### Step 1-2: Build and up together
+### Step 1-2: Build and Start Together
 ```bash
 docker-compose up --build
 ```
 
-### Step 3: Access the Application frontend
+### Step 3: Access the Application Frontend
 Navigate to `http://localhost:8501` in your web browser to access the Streamlit frontend.
 Note: Make sure to replace `8501` with the actual port number used by your Streamlit application.
 
@@ -79,14 +80,10 @@ Note: Make sure to replace `8501` with the actual port number used by your Strea
 Navigate to `http://localhost:8000` in your web browser to access the FastAPI backend.
 Note: Make sure to replace `8000` with the actual port number used by your FastAPI server.
 
-### Step 5: Qdrant setup
-Download and run Qdrant as a Docker container:
-```bash
-docker pull qdrant/qdrant
-docker run -p 6333:6333 qdrant/qdrant
-```
+### Qdrant Setup
+Qdrant setup is automatically handled by Docker Compose. No separate setup is required.
 
-# Check logs
+### Check Logs
 ```bash
 docker-compose logs -f nba-app
 ```
@@ -135,5 +132,3 @@ nba_project/
 - **Logs**: Centralized logging for debugging and monitoring.
 
 ---
-
-

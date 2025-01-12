@@ -1,0 +1,80 @@
+# Variables
+DOCKER_COMPOSE = docker-compose
+CONTAINER_NAME = $(shell docker ps --filter "name=nba-app" --format "{{.Names}}")
+DOCKER_EXEC = docker exec -it $(CONTAINER_NAME)
+
+# ====== Local Development Commands ======
+
+## Run the backend locally
+run-backend:
+	python -m backend.run_backend_server_main
+
+## Run the frontend locally
+run-frontend:
+	streamlit run streamlit_frontend/src/app.py
+
+## Run data loading script locally
+data-load-local:
+	python -m tasks.data_loading.data_load_main
+
+## Run data ingestion script locally
+data-ingest-local:
+	python -m tasks.data_ingesting.ingest_data_main
+
+
+# ====== Docker Deployment Commands ======
+
+
+## Build Docker images
+build:
+	$(DOCKER_COMPOSE) build
+
+## Start Docker Compose services
+up:
+	$(DOCKER_COMPOSE) up -d
+
+## Build and start Docker Compose services
+up-build:
+	$(DOCKER_COMPOSE) up --build -d
+
+## Stop Docker Compose services
+down:
+	$(DOCKER_COMPOSE) down
+
+## View logs for the nba-app service
+logs:
+	$(DOCKER_COMPOSE) logs -f nba-app
+
+## Clean Docker containers and volumes
+clean:
+	$(DOCKER_COMPOSE) down --volumes --remove-orphans
+	docker system prune -f
+
+## Run data loading script inside Docker
+data-load:
+	$(DOCKER_EXEC) python -m tasks.data_loading.data_load_main
+
+## Run data ingestion script inside Docker
+data-ingest:
+	$(DOCKER_EXEC) python -m tasks.data_ingesting.ingest_data_main
+
+# ====== Help ======
+.PHONY: help
+help:
+	@echo "Usage: make <command>"
+	@echo ""
+	@echo "Local Development Commands:"
+	@echo "  run-backend       - Start the FastAPI backend locally"
+	@echo "  run-frontend      - Start the Streamlit frontend locally"
+	@echo "  data-load-local   - Run the data loading script locally"
+	@echo "  data-ingest-local - Run the data ingestion script locally"
+	@echo ""
+	@echo "Docker Deployment Commands:"
+	@echo "  build             - Build Docker images"
+	@echo "  up                - Start Docker Compose services"
+	@echo "  up-build          - Build and start Docker Compose services"
+	@echo "  down              - Stop Docker Compose services"
+	@echo "  logs              - View logs for the nba-app service"
+	@echo "  clean             - Stop all services and clean up Docker resources"
+	@echo "  data-load         - Run the data loading script inside Docker"
+	@echo "  data-ingest       - Run the data ingestion script inside Docker"

@@ -7,11 +7,17 @@ services:
       - "8000:8000"
       - "8501:8501"
     env_file:
-      - .env
+      - .env_docker
     depends_on:
       - qdrant
-  # # The qdrant service runs in a separate Docker container and is connected to the nba-app service within the same network.
+    volumes:
+      - ./nba_data/raw_parquet_files:/app/nba_data/raw_parquet_files
+      - ./nba_data/processed_parquet_files:/app/nba_data/processed_parquet_files
+      - ./logs:/app/logs
+
   qdrant: 
     image: qdrant/qdrant
     ports:
       - "6333:6333"
+    volumes:
+      - ./qdrant_storage:/qdrant/storage

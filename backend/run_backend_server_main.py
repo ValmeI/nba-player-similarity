@@ -12,5 +12,3 @@ if __name__ == "__main__":
         port=settings.FAST_API_PORT,
         reload=True,  # Enable auto-reload on code changes during development
     )
-
-
