@@ -1,23 +1,45 @@
 version: '3.8'
+
 services:
   nba-app:
     build:
       context: .
     ports:
-      - "8000:8000"
-      - "8501:8501"
+      - "8000:8000"  # FastAPI
     env_file:
       - .env_docker
     depends_on:
       - qdrant
+    networks:
+      - nba-network
     volumes:
       - ./nba_data/raw_parquet_files:/app/nba_data/raw_parquet_files
       - ./nba_data/processed_parquet_files:/app/nba_data/processed_parquet_files
       - ./logs:/app/logs
 
-  qdrant: 
+  streamlit-app:
+    build:
+      context: .
+    ports:
+      - "8501:8501"  # Streamlit
+    depends_on:
+      - nba-app
+    networks:
+      - nba-network
+    environment:
+      FAST_API_URL: http://nba-app:8000  # FastAPI service name for inter-container communication
+    volumes:
+      - ./logs:/app/logs
+
+  qdrant:
     image: qdrant/qdrant
     ports:
-      - "6333:6333"
+      - "6333:6333"  # Qdrant
+    networks:
+      - nba-network
     volumes:
       - ./qdrant_storage:/qdrant/storage
+
+networks:
+  nba-network:
+    driver: bridge
