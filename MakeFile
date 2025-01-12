@@ -2,15 +2,25 @@
 DOCKER_COMPOSE = docker-compose
 CONTAINER_NAME = $(shell docker ps --filter "name=nba-app" --format "{{.Names}}")
 DOCKER_EXEC = docker exec -it $(CONTAINER_NAME)
+REQUIRED_PORTS = 8000 8501
 
 # ====== Local Development Commands ======
+.PHONY: run-backend run-frontend data-load-local data-ingest-local lint format test kill-ports-local
+
+## Kill processes using required ports locally
+kill-ports-local:
+	@echo "Killing processes on ports $(REQUIRED_PORTS) for local development..."
+	@for port in $(REQUIRED_PORTS); do \
+		sudo lsof -t -i:$$port | xargs -r kill -9 || true; \
+	done
+	@echo "Ports $(REQUIRED_PORTS) are now free for local development."
 
 ## Run the backend locally
-run-backend:
+run-backend: kill-ports-local
 	python -m backend.run_backend_server_main
 
 ## Run the frontend locally
-run-frontend:
+run-frontend: kill-ports-local
 	streamlit run streamlit_frontend/src/app.py
 
 ## Run data loading script locally
@@ -23,18 +33,26 @@ data-ingest-local:
 
 
 # ====== Docker Deployment Commands ======
+.PHONY: build up up-build down logs clean data-load data-ingest kill-ports-docker
 
+## Kill processes using required ports for Docker deployment
+kill-ports-docker:
+	@echo "Killing processes on ports $(REQUIRED_PORTS) for Docker deployment..."
+	@for port in $(REQUIRED_PORTS); do \
+		sudo lsof -t -i:$$port | xargs -r kill -9 || true; \
+	done
+	@echo "Ports $(REQUIRED_PORTS) are now free for Docker deployment."
 
 ## Build Docker images
 build:
 	$(DOCKER_COMPOSE) build
 
 ## Start Docker Compose services
-up:
+up: kill-ports-docker
 	$(DOCKER_COMPOSE) up -d
 
 ## Build and start Docker Compose services
-up-build:
+up-build: kill-ports-docker
 	$(DOCKER_COMPOSE) up --build -d
 
 ## Stop Docker Compose services
@@ -46,7 +64,7 @@ logs:
 	$(DOCKER_COMPOSE) logs -f nba-app
 
 ## Clean Docker containers and volumes
-clean:
+clean: kill-ports-docker
 	$(DOCKER_COMPOSE) down --volumes --remove-orphans
 	docker system prune -f
 
@@ -68,6 +86,7 @@ help:
 	@echo "  run-frontend      - Start the Streamlit frontend locally"
 	@echo "  data-load-local   - Run the data loading script locally"
 	@echo "  data-ingest-local - Run the data ingestion script locally"
+	@echo "  kill-ports-local  - Free required ports for local development"
 	@echo ""
 	@echo "Docker Deployment Commands:"
 	@echo "  build             - Build Docker images"
@@ -78,3 +97,4 @@ help:
 	@echo "  clean             - Stop all services and clean up Docker resources"
 	@echo "  data-load         - Run the data loading script inside Docker"
 	@echo "  data-ingest       - Run the data ingestion script inside Docker"
+	@echo "  kill-ports-docker - Free required ports for Docker deployment"
