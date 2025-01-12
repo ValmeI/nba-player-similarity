@@ -5,6 +5,31 @@ DOCKER_EXEC = docker exec -it $(CONTAINER_NAME)
 REQUIRED_PORTS = 8000 8501 6333
 
 
+# ====== Docker Daemon Management ======
+.PHONY: check-docker start-docker
+
+## Check if Docker is running
+check-docker:
+	@echo "Checking if Docker is running..."
+	@if (! docker info > /dev/null 2>&1); then \
+		echo "Docker is not running. Attempting to start Docker..."; \
+		$(MAKE) start-docker; \
+	fi
+	@echo "Docker is running."
+
+## Start Docker if not running
+start-docker:
+	@echo "Starting Docker daemon..."
+	@if [ -x "$(command -v systemctl)" ]; then \
+		sudo systemctl start docker; \
+	elif [ -x "$(command -v service)" ]; then \
+		sudo service docker start; \
+	else \
+		echo "Unable to start Docker. Please ensure Docker is installed and running."; \
+		exit 1; \
+	fi
+
+
 # ====== Local Development Commands ======
 .PHONY: run-backend run-frontend data-load-local data-ingest-local lint format test kill-ports-local
 
@@ -45,42 +70,47 @@ kill-ports-docker:
 	@echo "Ports $(REQUIRED_PORTS) are now free for Docker deployment."
 
 ## Build Docker images
-build:
+build: check-docker
 	$(DOCKER_COMPOSE) build
 
 ## Start Docker Compose services
-up: kill-ports-docker
+up: check-docker kill-ports-docker
 	$(DOCKER_COMPOSE) up -d
 
 ## Build and start Docker Compose services
-up-build: kill-ports-docker
+up-build: check-docker kill-ports-docker
 	$(DOCKER_COMPOSE) up --build -d
 
 ## Stop Docker Compose services
-down:
+down: check-docker
 	$(DOCKER_COMPOSE) down
 
 ## View logs for the nba-app service
-logs:
+logs: check-docker
 	$(DOCKER_COMPOSE) logs -f nba-app
 
 ## Clean Docker containers and volumes
-clean: kill-ports-docker
+clean: check-docker kill-ports-docker
 	$(DOCKER_COMPOSE) down --volumes --remove-orphans
 	docker system prune -f
 
 ## Run data loading script inside Docker
-data-load:
+data-load: check-docker
 	$(DOCKER_EXEC) python -m tasks.data_loading.data_load_main
 
 ## Run data ingestion script inside Docker
-data-ingest:
+data-ingest: check-docker
 	$(DOCKER_EXEC) python -m tasks.data_ingesting.ingest_data_main
+
 
 # ====== Help ======
 .PHONY: help
 help:
 	@echo "Usage: make <command>"
+	@echo ""
+	@echo "Docker Daemon Management:"
+	@echo "  check-docker      - Check if Docker is running and start it if not"
+	@echo "  start-docker      - Start Docker manually"
 	@echo ""
 	@echo "Local Development Commands:"
 	@echo "  run-backend       - Start the FastAPI backend locally"

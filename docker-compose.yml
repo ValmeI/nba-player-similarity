@@ -22,6 +22,8 @@ services:
       context: .
     ports:
       - "8501:8501"  # Streamlit
+    env_file:
+      - .env_docker
     depends_on:
       - nba-app
     networks:
