@@ -42,19 +42,28 @@ kill-ports-local:
 	@echo "Ports $(REQUIRED_PORTS) are now free for local development."
 
 ## Run the backend locally
-run-backend: kill-ports-local
+run-backend: 
+	@echo "Starting FastAPI backend..."
 	python -m backend.run_backend_server_main
 
+## Run Qdrant locally
+run-qdrant:
+	@echo "Starting Qdrant..."
+	docker run -d --name qdrant -p 6333:6333 qdrant/qdrant
+
 ## Run the frontend locally
-run-frontend: kill-ports-local
+run-frontend: 
+	@echo "Starting Streamlit frontend..."
 	streamlit run streamlit_frontend/src/app.py
 
 ## Run data loading script locally
 data-load-local:
+	@echo "Running data loading script locally..."
 	python -m tasks.data_loading.data_load_main
 
 ## Run data ingestion script locally
 data-ingest-local:
+	@echo "Running data ingestion script locally..."
 	python -m tasks.data_ingesting.ingest_data_main
 
 
