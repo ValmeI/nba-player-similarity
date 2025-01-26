@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from shared.config import settings
 from backend.src.qdrant_wrapper import QdrantClientWrapper
 from shared.utils.app_logger import logger
@@ -9,6 +9,12 @@ from backend.utils.search_results import (
     format_user_requested_player_career_stats,
 )
 from backend.src.player_real_name import get_real_player_name
+from geoip2.database import Reader
+import os
+
+# Load GeoIP database
+geoip_db_path = os.getenv("GEOIP_DB_PATH", "backend/geo_db/GeoLite2-City.mmdb")
+geoip_reader = Reader(geoip_db_path)
 
 app = FastAPI()
 client = QdrantClientWrapper(
@@ -19,6 +25,29 @@ client = QdrantClientWrapper(
 @app.get("/")
 def get_root():
     return {"message": "Service is up and running."}
+
+
+@app.middleware("http")
+async def log_user_geolocation(request: Request, call_next):
+    
+    client_ip = request.client.host
+
+    if client_ip in ["127.0.0.1", "::1"] or client_ip.startswith("192.168.") or client_ip.startswith("10."):
+        logger.info(f"Request from local environment (IP: {client_ip}). Assuming developer access.")
+        country, city = "Local Environment", "Developer Machine"
+    else:
+        try:
+            geoip_data = geoip_reader.city(client_ip)
+            country = geoip_data.country.name
+            city = geoip_data.city.name
+        except Exception as e:
+            logger.error(f"Failed to retrieve GeoIP data for {client_ip}: {e}")
+            country, city = "Unknown", "Unknown"
+
+    logger.info(f"Request from IP: {client_ip}, Country: {country}, City: {city}, Path: {request.url.path}")
+
+    response = await call_next(request)
+    return response
 
 
 def generate_similar_players_search_query_vector(player_name: str):
