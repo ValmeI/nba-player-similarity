@@ -35,11 +35,17 @@ def get_version():
     }
 
 
+# TODO: test if this actually works with reverse proxy
 @app.middleware("http")
 async def log_user_geolocation(request: Request, call_next):
+    # Check for external IP in headers (reverse proxy)
+    x_forwarded_for = request.headers.get("x-forwarded-for")
+    client_ip = x_forwarded_for.split(",")[0] if x_forwarded_for else request.headers.get("x-real-ip")
+    
+    if not client_ip:  # Fallback to direct client IP
+        client_ip = request.client.host
 
-    client_ip = request.client.host
-
+    # Handle local environment IPs
     if client_ip in ["127.0.0.1", "::1"] or client_ip.startswith("192.168.") or client_ip.startswith("10."):
         logger.info(f"Request from local environment (IP: {client_ip}). Assuming developer access.")
         country, city = "Local Environment", "Developer Machine"
@@ -56,7 +62,6 @@ async def log_user_geolocation(request: Request, call_next):
 
     response = await call_next(request)
     return response
-
 
 def generate_similar_players_search_query_vector(player_name: str):
     try:
