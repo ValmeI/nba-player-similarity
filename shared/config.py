@@ -67,6 +67,10 @@ class Settings(BaseSettings):
     LLM_MAX_TOKENS: int
     LLM_PROMPT_TEMPLATE: str
 
+    # Frontend and Backend versions
+    FRONTEND_VERSION: str
+    BACKEND_VERSION: str
+
     class Config:
         case_sensitive = True
         env_file = ".env"

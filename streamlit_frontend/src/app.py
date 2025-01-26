@@ -13,6 +13,7 @@ if str(project_root) not in sys.path:
 from shared.config import settings
 from shared.utils.app_logger import logger
 from streamlit_frontend.src.llm import generate_analysis
+from streamlit_frontend.src.version_numbers import fetch_versions
 
 API_BASE_URL = f"http://{settings.FAST_API_HOST}:{settings.FAST_API_PORT}"
 st.set_page_config(layout="wide")  # Enables wide screen mode
@@ -223,10 +224,23 @@ def handle_user_input():
         st.session_state["user_input"] = ""
 
 
+def display_versions():
+    frontend_version, backend_version = fetch_versions()
+
+    # Display versions in the header or footer
+    header = f"""
+        <div style="text-align: right; margin-bottom: 20px;">
+            <p>Frontend Version: {frontend_version} | Backend Version: {backend_version}</p>
+        </div>
+        """
+    st.markdown(header, unsafe_allow_html=True)
+
+
 def main():
     """Main function."""
     logger.info("Starting the application")
     st.title(settings.STREAMLIT_TITLE)
+    display_versions()
     initialize_session_state()
     display_chat_messages()
 

@@ -27,9 +27,17 @@ def get_root():
     return {"message": "Service is up and running."}
 
 
+@app.get("/version")
+def get_version():
+    return {
+        "frontend_version": settings.FRONTEND_VERSION,
+        "backend_version": settings.BACKEND_VERSION,
+    }
+
+
 @app.middleware("http")
 async def log_user_geolocation(request: Request, call_next):
-    
+
     client_ip = request.client.host
 
     if client_ip in ["127.0.0.1", "::1"] or client_ip.startswith("192.168.") or client_ip.startswith("10."):
