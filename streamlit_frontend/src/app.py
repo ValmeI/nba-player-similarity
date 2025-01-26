@@ -255,3 +255,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    # TODO: at some point move all to app/ dir for easier deployment on docker and config management with app/ dir
