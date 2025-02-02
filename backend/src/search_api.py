@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException
 from shared.config import settings
 from backend.src.qdrant_wrapper import QdrantClientWrapper
 from shared.utils.app_logger import logger
@@ -9,12 +9,6 @@ from backend.utils.search_results import (
     format_user_requested_player_career_stats,
 )
 from backend.src.player_real_name import get_real_player_name
-from geoip2.database import Reader
-import os
-
-# Load GeoIP database
-geoip_db_path = os.getenv("GEOIP_DB_PATH", "backend/geo_db/GeoLite2-City.mmdb")
-geoip_reader = Reader(geoip_db_path)
 
 app = FastAPI()
 client = QdrantClientWrapper(
@@ -23,45 +17,17 @@ client = QdrantClientWrapper(
 
 
 @app.get("/")
-def get_root():
+def get_root() -> dict[str, str]:
     return {"message": "Service is up and running."}
 
 
 @app.get("/version")
-def get_version():
+def get_version() -> dict[str, str]:
     return {
         "frontend_version": settings.FRONTEND_VERSION,
         "backend_version": settings.BACKEND_VERSION,
     }
 
-
-# TODO: test if this actually works with reverse proxy
-@app.middleware("http")
-async def log_user_geolocation(request: Request, call_next):
-    # Check for external IP in headers (reverse proxy)
-    x_forwarded_for = request.headers.get("x-forwarded-for")
-    client_ip = x_forwarded_for.split(",")[0] if x_forwarded_for else request.headers.get("x-real-ip")
-    
-    if not client_ip:  # Fallback to direct client IP
-        client_ip = request.client.host
-
-    # Handle local environment IPs
-    if client_ip in ["127.0.0.1", "::1"] or client_ip.startswith("192.168.") or client_ip.startswith("10."):
-        logger.info(f"Request from local environment (IP: {client_ip}). Assuming developer access.")
-        country, city = "Local Environment", "Developer Machine"
-    else:
-        try:
-            geoip_data = geoip_reader.city(client_ip)
-            country = geoip_data.country.name
-            city = geoip_data.city.name
-        except Exception as e:
-            logger.error(f"Failed to retrieve GeoIP data for {client_ip}: {e}")
-            country, city = "Unknown", "Unknown"
-
-    logger.info(f"Request from IP: {client_ip}, Country: {country}, City: {city}, Path: {request.url.path}")
-
-    response = await call_next(request)
-    return response
 
 def generate_similar_players_search_query_vector(player_name: str):
     try:
