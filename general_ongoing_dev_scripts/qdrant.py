@@ -1,9 +1,9 @@
 from qdrant_client import QdrantClient
-from backend.src.qdrant_wrapper import QdrantClientWrapper
+from backend.src.qdrant_wrapper import AsyncQdrantClientWrapper
 from shared.config import settings
 from icecream import ic
 import pandas as pd
-from data.process_data import add_all_player_metrics_to_parquet
+from tasks.data_loading.process_data import add_all_player_metrics_to_parquet
 from backend.src.search_api import user_requested_player_career_stats
 
 
@@ -23,11 +23,11 @@ def fetch_all_collections(host: str, port: int):
     return collections
 
 
-def test_search_players_by_name(req_player_name: str, collection_name: str):
-    with QdrantClientWrapper(
+async def test_search_players_by_name(req_player_name: str, collection_name: str):
+    async with AsyncQdrantClientWrapper(
         host=settings.QDRANT_HOST, port=settings.QDRANT_PORT, collection_name=collection_name
     ) as qdrant_object:
-        results = qdrant_object.search_players_by_name(req_player_name)
+        results = await qdrant_object.search_players_by_name(req_player_name)
         ic(results)
 
 
