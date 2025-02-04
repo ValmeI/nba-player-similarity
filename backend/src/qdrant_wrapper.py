@@ -1,7 +1,6 @@
-import asyncio
 from datetime import datetime
 import uuid
-from qdrant_client import AsyncQdrantClient
+from qdrant_client import QdrantClient
 from qdrant_client.models import PointStruct
 from shared.utils.app_logger import logger
 from backend.src.embeddings import PlayerEmbeddings
@@ -12,35 +11,34 @@ from pprint import pformat
 from tasks.data_loading.process_data import fetch_all_players_from_local_files
 
 
-class AsyncQdrantClientWrapper:
+class QdrantClientWrapper:
     def __init__(self, host: str, port: int, collection_name: str):
         self.host = host
         self.port = port
+        self.client = QdrantClient(host=self.host, port=self.port)
         self.collection_name = collection_name
-        self.async_client = AsyncQdrantClient(host=self.host, port=self.port)
 
-    async def __aenter__(self):
-        return self  # Allows usage with `async with QdrantClientWrapper() as client:`
+    def __enter__(self):
+        return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await self.async_client.close()  # Properly
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.client.close()
 
-    async def initialize_qdrant_collection(self, vector_size: int, reset_collection: bool):
+    def initialize_qdrant_collection(self, vector_size: int, reset_collection: bool):
 
-        response = await self.async_client.get_collections()
-        existing_collections = [c.name for c in response.collections]
+        existing_collections = [c.name for c in self.client.get_collections().collections]
         logger.info(f"Found existing collections: {existing_collections}")
 
         if self.collection_name in existing_collections:
             if reset_collection:
                 logger.info(f"Resetting collection '{self.collection_name}'...")
-                await self.async_client.delete_collection(self.collection_name)
+                self.client.delete_collection(self.collection_name)
             else:
                 logger.info(f"Collection '{self.collection_name}' already exists. Skipping reset.")
                 return
 
         logger.info(f"Creating collection: '{self.collection_name}'...")
-        await self.async_client.create_collection(
+        self.client.create_collection(
             self.collection_name,
             vectors_config={
                 "size": vector_size,
@@ -48,8 +46,8 @@ class AsyncQdrantClientWrapper:
             },
         )
 
-    async def upsert_players_data_to_qdrant(self, all_players_df: pd.DataFrame):
-        tasks = []
+    def upsert_players_data_to_qdrant(self, all_players_df: pd.DataFrame):
+
         for _, row in tqdm(all_players_df.iterrows(), desc="Upserting players to Qdrant"):
             # Convert metadata values to native Python types to avoid error
             # "Unable to serialize unknown type: <class 'numpy.int64'>"
@@ -118,7 +116,7 @@ class AsyncQdrantClientWrapper:
 
             data_payload = {**metadata, **normalized_metadata}
 
-            task = self.async_client.upsert(
+            self.client.upsert(
                 collection_name=self.collection_name,
                 points=[
                     PointStruct(
@@ -128,12 +126,9 @@ class AsyncQdrantClientWrapper:
                     )
                 ],
             )
-            tasks.append(task)
-
-        await asyncio.gather(*tasks)  # Run upsert calls in parallel
         logger.info(f"Upserted {len(all_players_df)} players to Qdrant.")
 
-    async def store_players_embedding(
+    def store_players_embedding(
         self,
         data_dir: str,
     ):
@@ -141,12 +136,12 @@ class AsyncQdrantClientWrapper:
         logger.debug(f"Processing players list of length {len(players_stats_df)} for embeddings and metadata...")
         embeddings_creator = PlayerEmbeddings(players_stats_df)
         processed_df = embeddings_creator.create_players_embeddings()
-        await self.upsert_players_data_to_qdrant(processed_df)
+        self.upsert_players_data_to_qdrant(processed_df)
 
-    async def search_players_by_name(self, player_name: str) -> list:
+    def search_players_by_name(self, player_name: str) -> list:
         player_name_lower = player_name.lower()
         logger.info(f"Searching for player {player_name} in Qdrant collection '{self.collection_name}'")
-        results, _ = await self.async_client.scroll(
+        results, _ = self.client.scroll(
             collection_name=self.collection_name,
             scroll_filter={"must": [{"key": "PLAYER_NAME_LOWER_CASE", "match": {"value": player_name_lower}}]},
             with_vectors=True,  # we need the vector to search for the player
@@ -166,8 +161,8 @@ class AsyncQdrantClientWrapper:
         else:
             raise ValueError(f"Player {player_name} not found in Qdrant.")
 
-    async def search_similar_players(self, query_vector: list):
-        results = await self.async_client.search(
+    def search_similar_players(self, query_vector: list):
+        results = self.client.search(
             collection_name=self.collection_name,
             query_vector=query_vector,
             limit=settings.QDRANT_VECTOR_SEARCH_LIMIT,
