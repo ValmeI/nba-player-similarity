@@ -3,7 +3,7 @@ from backend.src.qdrant_wrapper import QdrantClientWrapper
 from shared.config import settings
 from icecream import ic
 import pandas as pd
-from data.process_data import add_all_player_metrics_to_parquet
+from tasks.data_loading.process_data import add_all_player_metrics_to_parquet
 from backend.src.search_api import user_requested_player_career_stats
 
 
