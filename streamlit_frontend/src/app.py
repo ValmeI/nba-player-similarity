@@ -13,6 +13,7 @@ if str(project_root) not in sys.path:
 from shared.config import settings
 from shared.utils.app_logger import logger
 from streamlit_frontend.src.llm import generate_analysis
+from streamlit_frontend.src.intent_parser import parse_user_intent
 from streamlit_frontend.src.utils import fetch_versions, get_client_ip, get_geolocation
 
 API_BASE_URL = f"http://{settings.FAST_API_HOST}:{settings.FAST_API_PORT}"
@@ -60,14 +61,22 @@ def display_chat_messages():
 
 
 @st.cache_data
-def fetch_similar_players(requested_player_name):
+def fetch_similar_players(requested_player_name, position=None, era=None):
     # Capitalize the player name
     requested_player_name = requested_player_name.title()
-    logger.info(f"Fetching similar players for: {requested_player_name}")
+    logger.info(f"Fetching similar players for: {requested_player_name} (position={position}, era={era})")
     try:
         with st.spinner("Searching for similar players..."):
-            url = f"{API_BASE_URL}/search_similar_players/?player_name={requested_player_name}"
-            response = requests.get(url, timeout=settings.API_REQUEST_TIMEOUT)
+            params = {"player_name": requested_player_name}
+            if position:
+                params["position"] = position
+            if era:
+                params["era"] = era
+            response = requests.get(
+                f"{API_BASE_URL}/search_similar_players/",
+                params=params,
+                timeout=settings.API_REQUEST_TIMEOUT,
+            )
         response.raise_for_status()  # Raise an error for bad responses
         return response.json()
     except requests.exceptions.RequestException as e:
@@ -115,13 +124,22 @@ def get_user_input_stats(user_input):
         ]
 
 
-def get_similar_player_stats(user_stats):
+def get_similar_player_stats(user_stats, position=None, era=None):
     if "error" in user_stats:
         return user_stats
-    similar_players_result = fetch_similar_players(user_stats[0]["player_name"])
+    similar_players_result = fetch_similar_players(user_stats[0]["player_name"], position=position, era=era)
     logger.debug(f"Similar players result: {similar_players_result} for player: {user_stats[0]['player_name']}")
-    if "error" in similar_players_result:
-        return {"error": similar_players_result["error"]}
+    if isinstance(similar_players_result, dict) or not similar_players_result:
+        error_msg = similar_players_result.get("error") if isinstance(similar_players_result, dict) else None
+        if not error_msg:
+            active_filters = []
+            if position:
+                active_filters.append(f"position: {position}")
+            if era:
+                active_filters.append(f"era: {era}")
+            filter_note = f" with filters ({', '.join(active_filters)})" if active_filters else ""
+            error_msg = f"No similar players found{filter_note}. Try removing some filters or broadening your search."
+        return {"error": error_msg}
     else:
         return [
             {
@@ -144,11 +162,19 @@ def get_similar_player_stats(user_stats):
         ]
 
 
-def format_stats_for_display(user_stats, similar_player_stats):
+def format_stats_for_display(user_stats, similar_player_stats, position=None, era=None):
     llm_summary = generate_analysis(user_stats, similar_player_stats)
+
+    active_filters = []
+    if position:
+        active_filters.append(f"Position: {position}")
+    if era:
+        active_filters.append(f"Era: {era}")
+    filter_html = f"<p><strong>Active Filters:</strong> {', '.join(active_filters)}</p>" if active_filters else ""
 
     html_content = f"""
         <h2>Here are players similar to {user_stats[0]['player_name']}:</h2>
+        {filter_html}
         <h3>{user_stats[0]['player_name']} Career Stats:</h3>
         <table border='1'>
             <tr>
@@ -232,14 +258,38 @@ def handle_user_input():
         # Add user message to the chat history
         st.session_state["messages"].append({"role": "user", "content": user_input})
 
-        user_stats = get_user_input_stats(user_input)
-        similar_player_stats = get_similar_player_stats(user_stats)
+        # Parse user intent using LLM
+        intent = parse_user_intent(user_input)
+        logger.info(f"Parsed intent: {intent}")
+
+        # Handle edge case: no player name identified
+        if not intent["player_name"]:
+            st.session_state["messages"].append({
+                "role": "assistant",
+                "content": "Please provide a player name to find similar players.",
+            })
+            st.session_state["user_input"] = ""
+            return
+
+        # Handle edge case: multiple players mentioned
+        if intent["multiple_players"]:
+            st.session_state["messages"].append({
+                "role": "assistant",
+                "content": f"Currently only single player comparison is supported. Showing results for {intent['player_name']}.",
+            })
+
+        player_name = intent["player_name"]
+        position = intent["position"]
+        era = intent["era"]
+
+        user_stats = get_user_input_stats(player_name)
+        similar_player_stats = get_similar_player_stats(user_stats, position=position, era=era)
 
         if "error" in user_stats or "error" in similar_player_stats:
             reply = user_stats["error"] if "error" in user_stats else similar_player_stats["error"]
             st.session_state["messages"].append({"role": "assistant", "content": reply})
         else:
-            html_reply = format_stats_for_display(user_stats, similar_player_stats)
+            html_reply = format_stats_for_display(user_stats, similar_player_stats, position=position, era=era)
             st.session_state["messages"].append({"role": "assistant", "content": html_reply, "type": "html"})
 
         # Clear the input field

@@ -54,6 +54,12 @@ class Settings(BaseSettings):
     PROCESS_ALL_PLAYERS_METRIC: bool
     OWERWRITE_PLAYER_METRICS_IF_EXISTS: bool
 
+    # NBA API retry/rate-limit settings
+    NBA_API_RETRY_ATTEMPTS: int = Field(default=5, gt=0)
+    NBA_API_RETRY_WAIT_MIN: float = Field(default=3.0, ge=0.0)
+    NBA_API_RETRY_WAIT_MAX: float = Field(default=10.0, ge=0.0)
+    NBA_API_TIMEOUT: int = Field(default=30, gt=0)
+
     # Frontend settings
     API_REQUEST_TIMEOUT: int
     STREAMLIT_TITLE: str
@@ -66,6 +72,10 @@ class Settings(BaseSettings):
     LLM_TEMPERATURE: float = Field(..., ge=0.0, le=1.0)
     LLM_MAX_TOKENS: int
     LLM_PROMPT_TEMPLATE: str
+
+    # LLM Intent Parsing settings
+    LLM_INTENT_TEMPERATURE: float = Field(default=0.0, ge=0.0, le=1.0)
+    LLM_INTENT_MAX_TOKENS: int = Field(default=150, gt=0)
 
     # Frontend and Backend versions
     FRONTEND_VERSION: str

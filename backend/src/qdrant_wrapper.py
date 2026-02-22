@@ -1,7 +1,8 @@
+import asyncio
 from datetime import datetime
 import uuid
 from qdrant_client import QdrantClient
-from qdrant_client.models import PointStruct
+from qdrant_client.models import PointStruct, Filter, FieldCondition, MatchText, Range
 from shared.utils.app_logger import logger
 from backend.src.embeddings import PlayerEmbeddings
 from shared.config import settings
@@ -54,6 +55,7 @@ class QdrantClientWrapper:
             metadata = {
                 "PLAYER_NAME": str(row["PLAYER_NAME"]),
                 "PLAYER_NAME_LOWER_CASE": str(row["PLAYER_NAME"]).lower(),
+                "POSITION": str(row.get("POSITION", "Unknown")),
                 "PTS_PER_GAME": float(row["PTS_PER_GAME"]),
                 "REB_PER_GAME": float(row["REB_PER_GAME"]),
                 "AST_PER_GAME": float(row["AST_PER_GAME"]),
@@ -78,6 +80,7 @@ class QdrantClientWrapper:
                 "GS": int(row["GS"]),
                 "LAST_PLAYED_AGE": int(row["LAST_PLAYED_AGE"]),
                 "LAST_PLAYED_SEASON": str(row["LAST_PLAYED_SEASON"]),
+                "LAST_PLAYED_YEAR": int(str(row["LAST_PLAYED_SEASON"])[:4]) if row.get("LAST_PLAYED_SEASON") else 0,
                 "TOTAL_SEASONS": int(row["TOTAL_SEASONS"]),
                 "CREATED_AT": datetime.now().isoformat(),
             }
@@ -161,11 +164,60 @@ class QdrantClientWrapper:
         else:
             raise ValueError(f"Player {player_name} not found in Qdrant.")
 
-    def search_similar_players(self, query_vector: list):
+    @staticmethod
+    def _era_to_year_range(era: str) -> tuple[int, int]:
+        """Convert a decade string like '1990s' to a numeric year range.
+
+        Returns (decade_start, decade_end) inclusive, e.g. (1990, 1999).
+        """
+        decade_start = int(era.replace("s", ""))
+        decade_end = decade_start + 9
+        return decade_start, decade_end
+
+    @staticmethod
+    def _build_search_filter(position: str = None, era: str = None) -> Filter | None:
+        """Build a Qdrant Filter with optional position and era conditions."""
+        conditions = []
+
+        if position:
+            conditions.append(
+                FieldCondition(key="POSITION", match=MatchText(text=position))
+            )
+
+        if era:
+            decade_start, decade_end = QdrantClientWrapper._era_to_year_range(era)
+            conditions.append(
+                FieldCondition(
+                    key="LAST_PLAYED_YEAR",
+                    range=Range(gte=decade_start, lte=decade_end),
+                )
+            )
+
+        if conditions:
+            return Filter(must=conditions)
+        return None
+
+    def search_similar_players(self, query_vector: list, position: str = None, era: str = None):
+        query_filter = self._build_search_filter(position=position, era=era)
         results = self.client.search(
             collection_name=self.collection_name,
             query_vector=query_vector,
+            query_filter=query_filter,
             limit=settings.QDRANT_VECTOR_SEARCH_LIMIT,
             with_payload=True,
         )
         return results
+
+
+class AsyncQdrantClientWrapper(QdrantClientWrapper):
+    """Async wrapper around QdrantClientWrapper for use with FastAPI.
+
+    Delegates to the sync methods via asyncio.to_thread to avoid
+    blocking the event loop.
+    """
+
+    async def search_players_by_name(self, player_name: str) -> list:
+        return await asyncio.to_thread(super().search_players_by_name, player_name)
+
+    async def search_similar_players(self, query_vector: list, position: str = None, era: str = None):
+        return await asyncio.to_thread(super().search_similar_players, query_vector, position, era)

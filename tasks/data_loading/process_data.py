@@ -8,6 +8,7 @@ import os
 from shared.utils.app_logger import logger
 from tqdm import tqdm
 from icecream import ic
+from tasks.data_loading.get_nba_data import get_player_position
 
 
 def fill_missing_values(df: pd.DataFrame):
@@ -83,10 +84,15 @@ def calculate_career_averages(player_stats_df: pd.DataFrame):
         logger.warning(f"No games played for {player_stats_df['PLAYER_NAME'].iloc[0]}")
         return pd.DataFrame()
 
+    # Fetch position from NBA API
+    player_id = player_stats_df["PLAYER_ID"].iloc[0]
+    position = get_player_position(int(player_id))
+
     # Core per-game stats
     career_averages = {
         "PLAYER_NAME": player_stats_df["PLAYER_NAME"].iloc[0],
         "PLAYER_ID": player_stats_df["PLAYER_ID"].iloc[0],
+        "POSITION": position,
         "GP": total_games_played,
         "GS": career_totals["GS"],
         "LAST_PLAYED_AGE": player_stats_df["PLAYER_AGE"].iloc[-1],

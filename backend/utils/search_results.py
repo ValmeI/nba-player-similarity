@@ -11,6 +11,7 @@ def format_similar_players_search_result(search_player_name, search_result: list
         {
             "searched_player": search_player_name,
             "player_name": result.payload["PLAYER_NAME"],
+            "position": result.payload.get("POSITION"),
             "games_played": result.payload.get("GP"),
             "games_started": result.payload.get("GS"),
             "last_played_age": result.payload.get("LAST_PLAYED_AGE"),
@@ -47,6 +48,7 @@ def format_user_requested_player_career_stats(search_player_name, search_result:
         {
             "searched_player": search_player_name,
             "player_name": result.payload["PLAYER_NAME"],
+            "position": result.payload.get("POSITION"),
             "games_played": result.payload.get("GP"),
             "games_started": result.payload.get("GS"),
             "last_played_age": result.payload.get("LAST_PLAYED_AGE"),
