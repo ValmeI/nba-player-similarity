@@ -1,3 +1,4 @@
+import html
 import sys
 from pathlib import Path
 import requests
@@ -75,7 +76,7 @@ def display_chat_messages():
             st.html(content)
         else:
             # Render text messages as styled chat bubbles with avatars
-            escaped = content.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+            escaped = html.escape(content)
             escaped = escaped.replace("\n", "<br>")
             avatar = _render_avatar(role)
 
@@ -134,8 +135,11 @@ def fetch_user_input_player_stats(requested_player_name):
     logger.info(f"Fetching career stats for: {requested_player_name}")
     try:
         with st.spinner("Fetching career stats..."):
-            url = f"{API_BASE_URL}/user_requested_player_career_stats/?player_name={requested_player_name}"
-            response = requests.get(url, timeout=settings.API_REQUEST_TIMEOUT)
+            response = requests.get(
+                f"{API_BASE_URL}/user_requested_player_career_stats/",
+                params={"player_name": requested_player_name},
+                timeout=settings.API_REQUEST_TIMEOUT,
+            )
         response.raise_for_status()  # Raise an error for bad responses
         return response.json()
     except requests.exceptions.RequestException as e:
@@ -147,26 +151,27 @@ def get_user_input_stats(user_input):
     logger.debug(f"User stats result: {user_stats_result} for user input: {user_input}")
     if "error" in user_stats_result:
         return {"error": user_stats_result["error"]}
-    else:
-        user_stats_result_player = user_stats_result[0]
-        return [
-            {
-                "player_name": user_stats_result_player["searched_player"]["player_name"].title(),
-                "position": user_stats_result_player.get("position", "Unknown"),
-                "points_per_game": user_stats_result_player["points_per_game"],
-                "assists_per_game": user_stats_result_player["assists_per_game"],
-                "rebounds_per_game": user_stats_result_player["rebounds_per_game"],
-                "blocks_per_game": user_stats_result_player["blocks_per_game"],
-                "steals_per_game": user_stats_result_player["steals_per_game"],
-                "true_shooting_percentage": user_stats_result_player["true_shooting_percentage"] * 100,
-                "field_goal_percentage": user_stats_result_player["field_goal_percentage"],
-                "three_point_percentage": user_stats_result_player["three_point_percentage"],
-                "free_throw_percentage": user_stats_result_player["free_throw_percentage"],
-                "last_played_season": user_stats_result_player["last_played_season"],
-                "last_played_age": user_stats_result_player["last_played_age"],
-                "total_seasons": user_stats_result_player["total_seasons"],
-            }
-        ]
+    if not user_stats_result:
+        return {"error": "No stats found for the requested player."}
+    user_stats_result_player = user_stats_result[0]
+    return [
+        {
+            "player_name": user_stats_result_player["searched_player"]["player_name"].title(),
+            "position": user_stats_result_player.get("position", "Unknown"),
+            "points_per_game": user_stats_result_player["points_per_game"],
+            "assists_per_game": user_stats_result_player["assists_per_game"],
+            "rebounds_per_game": user_stats_result_player["rebounds_per_game"],
+            "blocks_per_game": user_stats_result_player["blocks_per_game"],
+            "steals_per_game": user_stats_result_player["steals_per_game"],
+            "true_shooting_percentage": (user_stats_result_player["true_shooting_percentage"] or 0) * 100,
+            "field_goal_percentage": user_stats_result_player["field_goal_percentage"],
+            "three_point_percentage": user_stats_result_player["three_point_percentage"],
+            "free_throw_percentage": user_stats_result_player["free_throw_percentage"],
+            "last_played_season": user_stats_result_player["last_played_season"],
+            "last_played_age": user_stats_result_player["last_played_age"],
+            "total_seasons": user_stats_result_player["total_seasons"],
+        }
+    ]
 
 
 def get_similar_player_stats(user_stats, position=None, era=None):
@@ -195,62 +200,42 @@ def get_similar_player_stats(user_stats, position=None, era=None):
                 "rebounds_per_game": player["rebounds_per_game"],
                 "blocks_per_game": player["blocks_per_game"],
                 "steals_per_game": player["steals_per_game"],
-                "true_shooting_percentage": player["true_shooting_percentage"] * 100,
+                "true_shooting_percentage": (player["true_shooting_percentage"] or 0) * 100,
                 "field_goal_percentage": player["field_goal_percentage"],
                 "three_point_percentage": player["three_point_percentage"],
                 "free_throw_percentage": player["free_throw_percentage"],
                 "last_played_season": player["last_played_season"],
                 "last_played_age": player["last_played_age"],
                 "total_seasons": player["total_seasons"],
-                "similarity_score": player["similarity_score"] * 100,
+                "similarity_score": (player["similarity_score"] or 0) * 100,
             }
             for player in similar_players_result
         ]
 
 
-def format_stats_for_display(user_stats, similar_player_stats, position=None, era=None):
-    llm_summary = generate_analysis(user_stats, similar_player_stats)
-
+def format_stats_for_display(user_stats, similar_player_stats, llm_summary, position=None, era=None):
     active_filters = []
     if position:
         active_filters.append(f"Position: {position}")
     if era:
         active_filters.append(f"Era: {era}")
-    filter_html = f"<p><strong>Active Filters:</strong> {', '.join(active_filters)}</p>" if active_filters else ""
-
-    table_style = """
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f4f4f4; margin: 0; padding: 0; }
-        .nba-results-card { background:#fff; border-radius:12px; padding:24px 28px; box-shadow:0 2px 12px rgba(0,0,0,0.07); }
-        .nba-results-card h2 { color:#17408B; font-size:1.5rem; font-weight:700; margin:0 0 4px 0; border-bottom:3px solid #C9082A; padding-bottom:10px; display:inline-block; }
-        .nba-results-card h3 { color:#2d3748; font-size:1.1rem; font-weight:600; margin:20px 0 8px 0; }
-        .nba-table { border-collapse:collapse; width:100%; font-size:13px; margin:8px 0 16px 0; box-shadow:0 1px 6px rgba(0,0,0,0.06); border-radius:8px; overflow:hidden; }
-        .nba-table th { background:linear-gradient(180deg,#C9082A 0%,#a8061f 100%); color:#fff; padding:10px; text-align:center; font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:0.3px; border:none; white-space:nowrap; }
-        .nba-table td { padding:9px 10px; text-align:center; border-bottom:1px solid #edf2f7; color:#2d3748; }
-        .nba-table tr:nth-child(even) { background:#fafbfc; }
-        .nba-table tr:hover { background:#edf2f7; }
-        .nba-table td:first-child { text-align:left; font-weight:600; color:#17408B; }
-        .nba-filter-badge { display:inline-block; background:linear-gradient(135deg,#17408B,#1a4fa0); color:#fff; padding:4px 14px; border-radius:16px; font-size:12px; font-weight:500; margin:2px 4px; }
-        .nba-similarity-high { color:#276749; font-weight:700; background:#f0fff4; padding:2px 8px; border-radius:10px; }
-        .nba-similarity-mid { color:#C9082A; font-weight:600; background:#fff5f5; padding:2px 8px; border-radius:10px; }
-        .nba-summary { background:linear-gradient(135deg,#f7fafc 0%,#edf2f7 100%); border-left:4px solid #17408B; padding:18px 20px; margin:16px 0 0 0; border-radius:0 10px 10px 0; line-height:1.7; font-size:14px; color:#2d3748; }
-    </style>
-    """
 
     def similarity_class(score):
         return "nba-similarity-high" if score >= 98 else "nba-similarity-mid"
 
     filter_badges = ''.join(
-        f'<span class="nba-filter-badge">{f}</span>' for f in active_filters
+        f'<span class="nba-filter-badge">{html.escape(f)}</span>' for f in active_filters
     ) if active_filters else ""
     filter_html_styled = f"<p>{filter_badges}</p>" if filter_badges else ""
 
+    escaped_heading_name = html.escape(user_stats[0]['player_name'])
+    escaped_llm_summary = html.escape(llm_summary)
+
     html_content = f"""
-        {table_style}
         <div class="nba-results-card">
-        <h2>Players similar to {user_stats[0]['player_name']}</h2>
+        <h2>Players similar to {escaped_heading_name}</h2>
         {filter_html_styled}
-        <h3>{user_stats[0]['player_name']} Career Stats</h3>
+        <h3>{escaped_heading_name} Career Stats</h3>
         <table class="nba-table">
             <tr>
                 <th>Player</th>
@@ -269,8 +254,8 @@ def format_stats_for_display(user_stats, similar_player_stats, position=None, er
                 <th>Total Seasons</th>
             </tr>
             {''.join([
-                f'<tr><td>{player["player_name"]}</td>'
-                f'<td>{player["position"]}</td>'
+                f'<tr><td>{html.escape(str(player["player_name"]))}</td>'
+                f'<td>{html.escape(str(player["position"]))}</td>'
                 f'<td>{player["points_per_game"]}</td>'
                 f'<td>{player["assists_per_game"]}</td>'
                 f'<td>{player["rebounds_per_game"]}</td>'
@@ -280,7 +265,7 @@ def format_stats_for_display(user_stats, similar_player_stats, position=None, er
                 f'<td>{player["field_goal_percentage"]:.1f}%</td>'
                 f'<td>{player["three_point_percentage"]:.1f}%</td>'
                 f'<td>{player["free_throw_percentage"]:.1f}%</td>'
-                f'<td>{player["last_played_season"]}</td>'
+                f'<td>{html.escape(str(player["last_played_season"]))}</td>'
                 f'<td>{player["last_played_age"]}</td>'
                 f'<td>{player["total_seasons"]}</td></tr>'
                 for player in user_stats
@@ -306,8 +291,8 @@ def format_stats_for_display(user_stats, similar_player_stats, position=None, er
                 <th>Similarity</th>
             </tr>
             {''.join([
-                f'<tr><td>{player["player_name"]}</td>'
-                f'<td>{player["position"]}</td>'
+                f'<tr><td>{html.escape(str(player["player_name"]))}</td>'
+                f'<td>{html.escape(str(player["position"]))}</td>'
                 f'<td>{player["points_per_game"]}</td>'
                 f'<td>{player["assists_per_game"]}</td>'
                 f'<td>{player["rebounds_per_game"]}</td>'
@@ -317,7 +302,7 @@ def format_stats_for_display(user_stats, similar_player_stats, position=None, er
                 f'<td>{player["field_goal_percentage"]:.1f}%</td>'
                 f'<td>{player["three_point_percentage"]:.1f}%</td>'
                 f'<td>{player["free_throw_percentage"]:.1f}%</td>'
-                f'<td>{player["last_played_season"]}</td>'
+                f'<td>{html.escape(str(player["last_played_season"]))}</td>'
                 f'<td>{player["last_played_age"]}</td>'
                 f'<td>{player["total_seasons"]}</td>'
                 f'<td class="{similarity_class(player["similarity_score"])}">{player["similarity_score"]:.1f}%</td></tr>'
@@ -325,7 +310,7 @@ def format_stats_for_display(user_stats, similar_player_stats, position=None, er
             ])}
         </table>
         <h3>Analysis</h3>
-        <div class="nba-summary">{llm_summary}</div>
+        <div class="nba-summary">{escaped_llm_summary}</div>
         </div>
     """
     return html_content
@@ -337,7 +322,7 @@ def handle_user_input():
         return
 
     # Guard against double-firing: skip if this input was already processed
-    if "last_processed_input" in st.session_state and st.session_state["last_processed_input"] == user_input:
+    if st.session_state["last_processed_input"] == user_input:
         return
     st.session_state["last_processed_input"] = user_input
 
@@ -347,7 +332,8 @@ def handle_user_input():
     st.session_state["messages"].append({"role": "user", "content": user_input})
 
     # Parse user intent using LLM
-    intent = parse_user_intent(user_input)
+    with st.spinner("Understanding your request..."):
+        intent = parse_user_intent(user_input)
     logger.info(f"Parsed intent: {intent}")
 
     # Handle edge case: no player name identified
@@ -377,7 +363,9 @@ def handle_user_input():
         reply = user_stats["error"] if "error" in user_stats else similar_player_stats["error"]
         st.session_state["messages"].append({"role": "assistant", "content": reply})
     else:
-        html_reply = format_stats_for_display(user_stats, similar_player_stats, position=position, era=era)
+        with st.spinner("Generating analysis..."):
+            llm_summary = generate_analysis(user_stats, similar_player_stats)
+        html_reply = format_stats_for_display(user_stats, similar_player_stats, llm_summary, position=position, era=era)
         st.session_state["messages"].append({"role": "assistant", "content": html_reply, "type": "html"})
 
     # Clear the input field
@@ -482,6 +470,21 @@ def inject_nba_theme():
         }
         header[data-testid="stHeader"] { display: none !important; }
         footer { visibility: hidden; }
+
+        /* === NBA Results Card (used by format_stats_for_display) === */
+        .nba-results-card { background:#fff; border-radius:12px; padding:24px 28px; box-shadow:0 2px 12px rgba(0,0,0,0.07); }
+        .nba-results-card h2 { color:#17408B; font-size:1.5rem; font-weight:700; margin:0 0 4px 0; border-bottom:3px solid #C9082A; padding-bottom:10px; display:inline-block; }
+        .nba-results-card h3 { color:#2d3748; font-size:1.1rem; font-weight:600; margin:20px 0 8px 0; }
+        .nba-table { border-collapse:collapse; width:100%; font-size:13px; margin:8px 0 16px 0; box-shadow:0 1px 6px rgba(0,0,0,0.06); border-radius:8px; overflow:hidden; }
+        .nba-table th { background:linear-gradient(180deg,#C9082A 0%,#a8061f 100%); color:#fff; padding:10px; text-align:center; font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:0.3px; border:none; white-space:nowrap; }
+        .nba-table td { padding:9px 10px; text-align:center; border-bottom:1px solid #edf2f7; color:#2d3748; }
+        .nba-table tr:nth-child(even) { background:#fafbfc; }
+        .nba-table tr:hover { background:#edf2f7; }
+        .nba-table td:first-child { text-align:left; font-weight:600; color:#17408B; }
+        .nba-filter-badge { display:inline-block; background:linear-gradient(135deg,#17408B,#1a4fa0); color:#fff; padding:4px 14px; border-radius:16px; font-size:12px; font-weight:500; margin:2px 4px; }
+        .nba-similarity-high { color:#276749; font-weight:700; background:#f0fff4; padding:2px 8px; border-radius:10px; }
+        .nba-similarity-mid { color:#C9082A; font-weight:600; background:#fff5f5; padding:2px 8px; border-radius:10px; }
+        .nba-summary { background:linear-gradient(135deg,#f7fafc 0%,#edf2f7 100%); border-left:4px solid #17408B; padding:18px 20px; margin:16px 0 0 0; border-radius:0 10px 10px 0; line-height:1.7; font-size:14px; color:#2d3748; }
     </style>
     """, unsafe_allow_html=True)
 

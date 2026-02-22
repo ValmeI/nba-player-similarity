@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 from sklearn.preprocessing import RobustScaler
 from shared.utils.app_logger import logger
@@ -55,24 +56,10 @@ class PlayerEmbeddings:
         Compound positions like "Guard-Forward" set multiple bits to 1.
         "Unknown" or missing positions result in all zeros.
         """
-        position_map = {
-            "Guard": "POS_GUARD",
-            "Forward": "POS_FORWARD",
-            "Center": "POS_CENTER",
-        }
-
-        for col in POSITION_COLUMNS:
-            self.players_stats_df[col] = 0
-
-        for idx, row in self.players_stats_df.iterrows():
-            pos = row.get("POSITION", "Unknown")
-            if pd.isna(pos) or pos == "Unknown":
-                continue
-            for part in pos.split("-"):
-                part = part.strip()
-                if part in position_map:
-                    self.players_stats_df.at[idx, position_map[part]] = 1
-
+        pos_col = self.players_stats_df["POSITION"].fillna("Unknown")
+        self.players_stats_df["POS_GUARD"] = pos_col.str.contains("Guard", na=False).astype(int)
+        self.players_stats_df["POS_FORWARD"] = pos_col.str.contains("Forward", na=False).astype(int)
+        self.players_stats_df["POS_CENTER"] = pos_col.str.contains("Center", na=False).astype(int)
         return self.players_stats_df
 
     def fill_missing_values(self) -> pd.DataFrame:
@@ -108,13 +95,13 @@ class PlayerEmbeddings:
             raise ValueError(f"Missing required columns for processing: {missing_columns}")
 
         self.fill_missing_values()
+        if "POSITION" not in self.players_stats_df.columns:
+            logger.warning("POSITION column missing from DataFrame - all position encodings will be zero")
         self.encode_position()
         self.players_stats_df = self.normalize_features()
 
-        embedding_columns = TO_NORMALIZED_COLUMNS + POSITION_COLUMNS
-        self.players_stats_df["embeddings"] = self.players_stats_df[embedding_columns].apply(
-            lambda row: row[:len(TO_NORMALIZED_COLUMNS)].tolist()
-            + (row[len(TO_NORMALIZED_COLUMNS):] * POSITION_WEIGHT).tolist(),
-            axis=1,
-        )
+        norm_values = self.players_stats_df[TO_NORMALIZED_COLUMNS].values
+        pos_values = self.players_stats_df[POSITION_COLUMNS].values * POSITION_WEIGHT
+        all_embeddings = np.hstack([norm_values, pos_values])
+        self.players_stats_df["embeddings"] = [row.tolist() for row in all_embeddings]
         return self.players_stats_df[METADATA_COLUMNS + ["embeddings"] + NUMERIC_COLUMNS + TO_NORMALIZED_COLUMNS]

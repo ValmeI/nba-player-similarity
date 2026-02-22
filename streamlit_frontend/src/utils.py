@@ -1,10 +1,12 @@
 import requests
+import streamlit as st
 from shared.config import settings
 
 # Backend version endpoint
 BACKEND_VERSION_ENDPOINT = f"http://{settings.FAST_API_HOST}:{settings.FAST_API_PORT}/version"
 
 
+@st.cache_data(ttl=300)
 def fetch_versions():
     try:
         response = requests.get(BACKEND_VERSION_ENDPOINT, timeout=settings.API_REQUEST_TIMEOUT)

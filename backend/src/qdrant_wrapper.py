@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime
+import re
 import uuid
 from qdrant_client import QdrantClient
 from qdrant_client.models import PointStruct, Filter, FieldCondition, MatchText, Range
@@ -170,6 +171,8 @@ class QdrantClientWrapper:
 
         Returns (decade_start, decade_end) inclusive, e.g. (1990, 1999).
         """
+        if not re.match(r"^\d{4}s$", era):
+            raise ValueError(f"Invalid era format: '{era}'. Expected format like '1990s'")
         decade_start = int(era.replace("s", ""))
         decade_end = decade_start + 9
         return decade_start, decade_end
