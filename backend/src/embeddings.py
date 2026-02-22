@@ -5,7 +5,7 @@ from shared.utils.app_logger import logger
 pd.set_option("future.no_silent_downcasting", True)
 
 
-METADATA_COLUMNS = ["PLAYER_NAME", "PLAYER_ID", "LAST_PLAYED_SEASON"]
+METADATA_COLUMNS = ["PLAYER_NAME", "PLAYER_ID", "LAST_PLAYED_SEASON", "POSITION"]
 
 # Define the numeric columns for embedding
 NUMERIC_COLUMNS = [
@@ -41,9 +41,39 @@ NORMALIZED_COLUMN_PREFIX = "NORM_"
 TO_NORMALIZED_COLUMNS = [f"{NORMALIZED_COLUMN_PREFIX}{col}" for col in NUMERIC_COLUMNS]
 
 
+POSITION_COLUMNS = ["POS_GUARD", "POS_FORWARD", "POS_CENTER"]
+POSITION_WEIGHT = 3.0
+
+
 class PlayerEmbeddings:
     def __init__(self, players_stats_df: pd.DataFrame):
         self.players_stats_df = players_stats_df
+
+    def encode_position(self) -> pd.DataFrame:
+        """
+        One-hot encode the POSITION column into POS_GUARD, POS_FORWARD, POS_CENTER.
+        Compound positions like "Guard-Forward" set multiple bits to 1.
+        "Unknown" or missing positions result in all zeros.
+        """
+        position_map = {
+            "Guard": "POS_GUARD",
+            "Forward": "POS_FORWARD",
+            "Center": "POS_CENTER",
+        }
+
+        for col in POSITION_COLUMNS:
+            self.players_stats_df[col] = 0
+
+        for idx, row in self.players_stats_df.iterrows():
+            pos = row.get("POSITION", "Unknown")
+            if pd.isna(pos) or pos == "Unknown":
+                continue
+            for part in pos.split("-"):
+                part = part.strip()
+                if part in position_map:
+                    self.players_stats_df.at[idx, position_map[part]] = 1
+
+        return self.players_stats_df
 
     def fill_missing_values(self) -> pd.DataFrame:
         """
@@ -78,8 +108,13 @@ class PlayerEmbeddings:
             raise ValueError(f"Missing required columns for processing: {missing_columns}")
 
         self.fill_missing_values()
+        self.encode_position()
         self.players_stats_df = self.normalize_features()
-        self.players_stats_df["embeddings"] = self.players_stats_df[TO_NORMALIZED_COLUMNS].apply(
-            lambda row: row.to_numpy().tolist(), axis=1
+
+        embedding_columns = TO_NORMALIZED_COLUMNS + POSITION_COLUMNS
+        self.players_stats_df["embeddings"] = self.players_stats_df[embedding_columns].apply(
+            lambda row: row[:len(TO_NORMALIZED_COLUMNS)].tolist()
+            + (row[len(TO_NORMALIZED_COLUMNS):] * POSITION_WEIGHT).tolist(),
+            axis=1,
         )
         return self.players_stats_df[METADATA_COLUMNS + ["embeddings"] + NUMERIC_COLUMNS + TO_NORMALIZED_COLUMNS]

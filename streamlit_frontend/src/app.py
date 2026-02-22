@@ -2,7 +2,6 @@ import sys
 from pathlib import Path
 import requests
 import streamlit as st
-from streamlit_chat import message
 
 project_root = Path(__file__).resolve().parent.parent.parent
 
@@ -17,14 +16,18 @@ from streamlit_frontend.src.intent_parser import parse_user_intent
 from streamlit_frontend.src.utils import fetch_versions, get_client_ip, get_geolocation
 
 API_BASE_URL = f"http://{settings.FAST_API_HOST}:{settings.FAST_API_PORT}"
-st.set_page_config(layout="wide")  # Enables wide screen mode
+st.set_page_config(layout="wide", page_title="NBA Player Similarity Finder", page_icon="\U0001f3c0")
 
 
 def initialize_session_state():
     if "messages" not in st.session_state:
-        st.session_state["messages"] = [{"role": "assistant", "content": settings.STREAMLIT_INITIAL_MESSAGE}]
+        # Replace literal \n from env with markdown line breaks (two trailing spaces + newline)
+        initial_message = settings.STREAMLIT_INITIAL_MESSAGE.replace("\\n", "  \n")
+        st.session_state["messages"] = [{"role": "assistant", "content": initial_message}]
     if "user_input" not in st.session_state:
         st.session_state["user_input"] = ""
+    if "last_processed_input" not in st.session_state:
+        st.session_state["last_processed_input"] = ""
 
     if "client_ip" not in st.session_state:
         st.session_state["client_ip"] = get_client_ip()
@@ -49,15 +52,56 @@ def initialize_session_state():
     logger.info(log_message)
 
 
+def _render_avatar(role):
+    """Return an HTML avatar circle for the given role."""
+    if role == "user":
+        return '''<div style="width:36px; height:36px; border-radius:50%; background:#C9082A;
+                    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+                    font-size:16px; box-shadow:0 1px 4px rgba(0,0,0,0.12);">\U0001f464</div>'''
+    else:
+        return '''<div style="width:36px; height:36px; border-radius:50%; background:#17408B;
+                    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+                    font-size:16px; box-shadow:0 1px 4px rgba(0,0,0,0.12);">\U0001f3c0</div>'''
+
+
 def display_chat_messages():
-    # enumerate to get unique key for each message by combining the role
-    for i, msg in enumerate(st.session_state["messages"]):
-        if msg.get("type") == "html":
-            # Render HTML messages safely
-            st.markdown(msg["content"], unsafe_allow_html=True)
+    for msg in st.session_state["messages"]:
+        role = msg["role"]
+        content = msg["content"]
+        is_html = msg.get("type") == "html"
+
+        if is_html:
+            # HTML results render full-width via st.html (no tag stripping)
+            st.html(content)
         else:
-            # Render plain text messages
-            message(msg["content"], is_user=(msg["role"] == "user"), key=f"{msg['role']}_{i}")
+            # Render text messages as styled chat bubbles with avatars
+            escaped = content.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+            escaped = escaped.replace("\n", "<br>")
+            avatar = _render_avatar(role)
+
+            if role == "user":
+                bubble_html = f'''
+                <div style="display:flex; justify-content:flex-end; align-items:flex-start; gap:10px; margin:0.6rem 0;">
+                    <div style="background:#17408B; color:#fff; border-radius:16px 4px 16px 16px;
+                                padding:0.8rem 1.1rem; max-width:70%; font-size:0.95rem;
+                                box-shadow:0 2px 8px rgba(23,64,139,0.2); line-height:1.5;">
+                        {escaped}
+                    </div>
+                    {avatar}
+                </div>'''
+            else:
+                bubble_html = f'''
+                <div style="display:flex; justify-content:flex-start; align-items:flex-start; gap:10px; margin:0.6rem 0;">
+                    {avatar}
+                    <div style="background:#ffffff; color:#1a202c; border:1px solid #e2e8f0;
+                                border-radius:4px 16px 16px 16px; padding:0.8rem 1.1rem;
+                                max-width:70%; font-size:0.95rem;
+                                box-shadow:0 1px 4px rgba(0,0,0,0.05); line-height:1.5;">
+                        {escaped}
+                    </div>
+                </div>'''
+
+            st.markdown(bubble_html, unsafe_allow_html=True)
 
 
 @st.cache_data
@@ -108,6 +152,7 @@ def get_user_input_stats(user_input):
         return [
             {
                 "player_name": user_stats_result_player["searched_player"]["player_name"].title(),
+                "position": user_stats_result_player.get("position", "Unknown"),
                 "points_per_game": user_stats_result_player["points_per_game"],
                 "assists_per_game": user_stats_result_player["assists_per_game"],
                 "rebounds_per_game": user_stats_result_player["rebounds_per_game"],
@@ -144,6 +189,7 @@ def get_similar_player_stats(user_stats, position=None, era=None):
         return [
             {
                 "player_name": player["player_name"].title(),
+                "position": player.get("position", "Unknown"),
                 "points_per_game": player["points_per_game"],
                 "assists_per_game": player["assists_per_game"],
                 "rebounds_per_game": player["rebounds_per_game"],
@@ -173,58 +219,22 @@ def format_stats_for_display(user_stats, similar_player_stats, position=None, er
     filter_html = f"<p><strong>Active Filters:</strong> {', '.join(active_filters)}</p>" if active_filters else ""
 
     table_style = """
-        <style>
-            .nba-table {
-                border-collapse: collapse;
-                width: 100%;
-                font-size: 14px;
-                margin: 16px 0;
-            }
-            .nba-table th {
-                background-color: #1e3a5f;
-                color: #ffffff;
-                padding: 10px 12px;
-                text-align: center;
-                font-weight: 600;
-                border: 1px solid #2c5282;
-                white-space: nowrap;
-            }
-            .nba-table td {
-                padding: 8px 12px;
-                text-align: center;
-                border: 1px solid #e2e8f0;
-            }
-            .nba-table tr:nth-child(even) {
-                background-color: #f7fafc;
-            }
-            .nba-table tr:hover {
-                background-color: #edf2f7;
-            }
-            .nba-table td:first-child {
-                text-align: left;
-                font-weight: 600;
-            }
-            .nba-filter-badge {
-                display: inline-block;
-                background-color: #edf2f7;
-                color: #2d3748;
-                padding: 4px 12px;
-                border-radius: 16px;
-                font-size: 13px;
-                margin: 2px 4px;
-                border: 1px solid #cbd5e0;
-            }
-            .nba-similarity-high { color: #276749; font-weight: 700; }
-            .nba-similarity-mid { color: #975a16; font-weight: 600; }
-            .nba-summary {
-                background-color: #f7fafc;
-                border-left: 4px solid #1e3a5f;
-                padding: 16px;
-                margin: 16px 0;
-                border-radius: 0 8px 8px 0;
-                line-height: 1.6;
-            }
-        </style>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f4f4f4; margin: 0; padding: 0; }
+        .nba-results-card { background:#fff; border-radius:12px; padding:24px 28px; box-shadow:0 2px 12px rgba(0,0,0,0.07); }
+        .nba-results-card h2 { color:#17408B; font-size:1.5rem; font-weight:700; margin:0 0 4px 0; border-bottom:3px solid #C9082A; padding-bottom:10px; display:inline-block; }
+        .nba-results-card h3 { color:#2d3748; font-size:1.1rem; font-weight:600; margin:20px 0 8px 0; }
+        .nba-table { border-collapse:collapse; width:100%; font-size:13px; margin:8px 0 16px 0; box-shadow:0 1px 6px rgba(0,0,0,0.06); border-radius:8px; overflow:hidden; }
+        .nba-table th { background:linear-gradient(180deg,#C9082A 0%,#a8061f 100%); color:#fff; padding:10px; text-align:center; font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:0.3px; border:none; white-space:nowrap; }
+        .nba-table td { padding:9px 10px; text-align:center; border-bottom:1px solid #edf2f7; color:#2d3748; }
+        .nba-table tr:nth-child(even) { background:#fafbfc; }
+        .nba-table tr:hover { background:#edf2f7; }
+        .nba-table td:first-child { text-align:left; font-weight:600; color:#17408B; }
+        .nba-filter-badge { display:inline-block; background:linear-gradient(135deg,#17408B,#1a4fa0); color:#fff; padding:4px 14px; border-radius:16px; font-size:12px; font-weight:500; margin:2px 4px; }
+        .nba-similarity-high { color:#276749; font-weight:700; background:#f0fff4; padding:2px 8px; border-radius:10px; }
+        .nba-similarity-mid { color:#C9082A; font-weight:600; background:#fff5f5; padding:2px 8px; border-radius:10px; }
+        .nba-summary { background:linear-gradient(135deg,#f7fafc 0%,#edf2f7 100%); border-left:4px solid #17408B; padding:18px 20px; margin:16px 0 0 0; border-radius:0 10px 10px 0; line-height:1.7; font-size:14px; color:#2d3748; }
+    </style>
     """
 
     def similarity_class(score):
@@ -237,12 +247,14 @@ def format_stats_for_display(user_stats, similar_player_stats, position=None, er
 
     html_content = f"""
         {table_style}
+        <div class="nba-results-card">
         <h2>Players similar to {user_stats[0]['player_name']}</h2>
         {filter_html_styled}
         <h3>{user_stats[0]['player_name']} Career Stats</h3>
         <table class="nba-table">
             <tr>
                 <th>Player</th>
+                <th>Position</th>
                 <th>Points/Game</th>
                 <th>Assists/Game</th>
                 <th>Rebounds/Game</th>
@@ -258,6 +270,7 @@ def format_stats_for_display(user_stats, similar_player_stats, position=None, er
             </tr>
             {''.join([
                 f'<tr><td>{player["player_name"]}</td>'
+                f'<td>{player["position"]}</td>'
                 f'<td>{player["points_per_game"]}</td>'
                 f'<td>{player["assists_per_game"]}</td>'
                 f'<td>{player["rebounds_per_game"]}</td>'
@@ -277,6 +290,7 @@ def format_stats_for_display(user_stats, similar_player_stats, position=None, er
         <table class="nba-table">
             <tr>
                 <th>Player</th>
+                <th>Position</th>
                 <th>Points/Game</th>
                 <th>Assists/Game</th>
                 <th>Rebounds/Game</th>
@@ -293,6 +307,7 @@ def format_stats_for_display(user_stats, similar_player_stats, position=None, er
             </tr>
             {''.join([
                 f'<tr><td>{player["player_name"]}</td>'
+                f'<td>{player["position"]}</td>'
                 f'<td>{player["points_per_game"]}</td>'
                 f'<td>{player["assists_per_game"]}</td>'
                 f'<td>{player["rebounds_per_game"]}</td>'
@@ -311,82 +326,189 @@ def format_stats_for_display(user_stats, similar_player_stats, position=None, er
         </table>
         <h3>Analysis</h3>
         <div class="nba-summary">{llm_summary}</div>
+        </div>
     """
     return html_content
 
 
 def handle_user_input():
     user_input = st.session_state.user_input.strip()
+    if not user_input:
+        return
+
+    # Guard against double-firing: skip if this input was already processed
+    if "last_processed_input" in st.session_state and st.session_state["last_processed_input"] == user_input:
+        return
+    st.session_state["last_processed_input"] = user_input
+
     logger.info(f"User input received: {user_input}")
-    if user_input:
-        # Add user message to the chat history
-        st.session_state["messages"].append({"role": "user", "content": user_input})
 
-        # Parse user intent using LLM
-        intent = parse_user_intent(user_input)
-        logger.info(f"Parsed intent: {intent}")
+    # Add user message to the chat history
+    st.session_state["messages"].append({"role": "user", "content": user_input})
 
-        # Handle edge case: no player name identified
-        if not intent["player_name"]:
-            st.session_state["messages"].append({
-                "role": "assistant",
-                "content": "Please provide a player name to find similar players.",
-            })
-            st.session_state["user_input"] = ""
-            return
+    # Parse user intent using LLM
+    intent = parse_user_intent(user_input)
+    logger.info(f"Parsed intent: {intent}")
 
-        # Handle edge case: multiple players mentioned
-        if intent["multiple_players"]:
-            st.session_state["messages"].append({
-                "role": "assistant",
-                "content": f"Currently only single player comparison is supported. Showing results for {intent['player_name']}.",
-            })
-
-        player_name = intent["player_name"]
-        position = intent["position"]
-        era = intent["era"]
-
-        user_stats = get_user_input_stats(player_name)
-        similar_player_stats = get_similar_player_stats(user_stats, position=position, era=era)
-
-        if "error" in user_stats or "error" in similar_player_stats:
-            reply = user_stats["error"] if "error" in user_stats else similar_player_stats["error"]
-            st.session_state["messages"].append({"role": "assistant", "content": reply})
-        else:
-            html_reply = format_stats_for_display(user_stats, similar_player_stats, position=position, era=era)
-            st.session_state["messages"].append({"role": "assistant", "content": html_reply, "type": "html"})
-
-        # Clear the input field
+    # Handle edge case: no player name identified
+    if not intent["player_name"]:
+        st.session_state["messages"].append({
+            "role": "assistant",
+            "content": "Please provide a player name to find similar players.",
+        })
         st.session_state["user_input"] = ""
+        return
+
+    # Handle edge case: multiple players mentioned
+    if intent["multiple_players"]:
+        st.session_state["messages"].append({
+            "role": "assistant",
+            "content": f"Currently only single player comparison is supported. Showing results for {intent['player_name']}.",
+        })
+
+    player_name = intent["player_name"]
+    position = intent["position"]
+    era = intent["era"]
+
+    user_stats = get_user_input_stats(player_name)
+    similar_player_stats = get_similar_player_stats(user_stats, position=position, era=era)
+
+    if "error" in user_stats or "error" in similar_player_stats:
+        reply = user_stats["error"] if "error" in user_stats else similar_player_stats["error"]
+        st.session_state["messages"].append({"role": "assistant", "content": reply})
+    else:
+        html_reply = format_stats_for_display(user_stats, similar_player_stats, position=position, era=era)
+        st.session_state["messages"].append({"role": "assistant", "content": html_reply, "type": "html"})
+
+    # Clear the input field
+    st.session_state["user_input"] = ""
 
 
-def display_versions():
+def get_version_string():
     frontend_version, backend_version = fetch_versions()
+    return f"v{frontend_version} | API v{backend_version}"
 
-    # Display versions in the header or footer
-    header = f"""
-        <div style="text-align: right; margin-bottom: 20px;">
-            <p>Frontend Version: {frontend_version} | Backend Version: {backend_version}</p>
-        </div>
-        """
-    st.markdown(header, unsafe_allow_html=True)
+
+def inject_nba_theme():
+    """Inject global NBA-themed CSS."""
+    st.markdown("""
+    <style>
+        /* === Font === */
+        html, body, [class*="css"] {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        /* === Page background === */
+        .stApp {
+            background-color: #f4f4f4;
+        }
+        .block-container {
+            padding-top: 1rem !important;
+        }
+
+        /* === Header banner === */
+        .nba-header {
+            background: linear-gradient(135deg, #17408B 0%, #1a4fa0 50%, #17408B 100%);
+            padding: 2rem 1.5rem 1.2rem 1.5rem;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 20px rgba(23, 64, 139, 0.35);
+        }
+        .nba-header h1 {
+            color: #ffffff !important;
+            font-size: 2.2rem;
+            font-weight: 800;
+            margin: 0;
+            letter-spacing: 0.5px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        .nba-header .nba-subtitle {
+            color: rgba(255, 255, 255, 0.85) !important;
+            font-size: 1rem;
+            margin: 0.3rem 0 0 0;
+        }
+        .nba-header .nba-version {
+            color: rgba(255, 255, 255, 0.45) !important;
+            font-size: 0.72rem;
+            margin: 0.6rem 0 0 0;
+        }
+
+
+        /* === Input styling === */
+        .stTextInput label {
+            font-weight: 600;
+            color: #17408B;
+        }
+        .stTextInput input {
+            border: 2px solid #e2e8f0 !important;
+            border-radius: 10px !important;
+            padding: 0.75rem 1rem !important;
+            background: #ffffff !important;
+        }
+        .stTextInput input:focus {
+            border-color: #17408B !important;
+            box-shadow: 0 0 0 3px rgba(23, 64, 139, 0.12) !important;
+        }
+        /* Kill Streamlit's default focus wrapper border */
+        .stTextInput div[data-baseweb] {
+            border: none !important;
+            box-shadow: none !important;
+        }
+        .stTextInput input::placeholder {
+            color: #a0aec0;
+        }
+
+        /* === Scrollbar === */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #17408B; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #C9082A; }
+
+        /* === Footer === */
+        .nba-footer {
+            text-align: center;
+            color: #a0aec0;
+            font-size: 0.78rem;
+            padding: 1.5rem 0 0.5rem 0;
+            border-top: 1px solid #e2e8f0;
+            margin-top: 2rem;
+        }
+
+        /* === Hide Streamlit chrome === */
+        #MainMenu, .stDeployButton, [data-testid="stToolbar"],
+        [data-testid="stDecoration"] {
+            display: none !important;
+        }
+        header[data-testid="stHeader"] { display: none !important; }
+        footer { visibility: hidden; }
+    </style>
+    """, unsafe_allow_html=True)
 
 
 def main():
     """Main function."""
     logger.info("Starting the application")
-    st.title(settings.STREAMLIT_TITLE)
-    display_versions()
+    inject_nba_theme()
+
+    # Custom HTML header banner with integrated version
+    version_str = get_version_string()
+    st.markdown(f"""
+    <div class="nba-header">
+        <h1>\U0001f3c0 NBA Player Similarity Finder</h1>
+        <p class="nba-subtitle">Find players with similar playing styles across eras</p>
+        <p class="nba-version">{version_str}</p>
+    </div>
+    """, unsafe_allow_html=True)
     initialize_session_state()
     display_chat_messages()
 
-    user_input = st.text_input(
-        "Your message:", key="user_input", placeholder=settings.STREAMLIT_INPUT_PLACEHOLDER, on_change=handle_user_input
+    st.text_input(
+        "Search for a player:", key="user_input", placeholder=settings.STREAMLIT_INPUT_PLACEHOLDER, on_change=handle_user_input
     )
 
-    # Trigger the function manually if new input is detected
-    if user_input and st.session_state["user_input"] != user_input:
-        handle_user_input()
+    # Footer
+    st.markdown('<div class="nba-footer">Powered by AI & NBA Stats</div>', unsafe_allow_html=True)
 
 
 if __name__ == "__main__":
