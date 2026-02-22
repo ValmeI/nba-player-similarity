@@ -172,11 +172,75 @@ def format_stats_for_display(user_stats, similar_player_stats, position=None, er
         active_filters.append(f"Era: {era}")
     filter_html = f"<p><strong>Active Filters:</strong> {', '.join(active_filters)}</p>" if active_filters else ""
 
+    table_style = """
+        <style>
+            .nba-table {
+                border-collapse: collapse;
+                width: 100%;
+                font-size: 14px;
+                margin: 16px 0;
+            }
+            .nba-table th {
+                background-color: #1e3a5f;
+                color: #ffffff;
+                padding: 10px 12px;
+                text-align: center;
+                font-weight: 600;
+                border: 1px solid #2c5282;
+                white-space: nowrap;
+            }
+            .nba-table td {
+                padding: 8px 12px;
+                text-align: center;
+                border: 1px solid #e2e8f0;
+            }
+            .nba-table tr:nth-child(even) {
+                background-color: #f7fafc;
+            }
+            .nba-table tr:hover {
+                background-color: #edf2f7;
+            }
+            .nba-table td:first-child {
+                text-align: left;
+                font-weight: 600;
+            }
+            .nba-filter-badge {
+                display: inline-block;
+                background-color: #edf2f7;
+                color: #2d3748;
+                padding: 4px 12px;
+                border-radius: 16px;
+                font-size: 13px;
+                margin: 2px 4px;
+                border: 1px solid #cbd5e0;
+            }
+            .nba-similarity-high { color: #276749; font-weight: 700; }
+            .nba-similarity-mid { color: #975a16; font-weight: 600; }
+            .nba-summary {
+                background-color: #f7fafc;
+                border-left: 4px solid #1e3a5f;
+                padding: 16px;
+                margin: 16px 0;
+                border-radius: 0 8px 8px 0;
+                line-height: 1.6;
+            }
+        </style>
+    """
+
+    def similarity_class(score):
+        return "nba-similarity-high" if score >= 98 else "nba-similarity-mid"
+
+    filter_badges = ''.join(
+        f'<span class="nba-filter-badge">{f}</span>' for f in active_filters
+    ) if active_filters else ""
+    filter_html_styled = f"<p>{filter_badges}</p>" if filter_badges else ""
+
     html_content = f"""
-        <h2>Here are players similar to {user_stats[0]['player_name']}:</h2>
-        {filter_html}
-        <h3>{user_stats[0]['player_name']} Career Stats:</h3>
-        <table border='1'>
+        {table_style}
+        <h2>Players similar to {user_stats[0]['player_name']}</h2>
+        {filter_html_styled}
+        <h3>{user_stats[0]['player_name']} Career Stats</h3>
+        <table class="nba-table">
             <tr>
                 <th>Player</th>
                 <th>Points/Game</th>
@@ -184,12 +248,12 @@ def format_stats_for_display(user_stats, similar_player_stats, position=None, er
                 <th>Rebounds/Game</th>
                 <th>Blocks/Game</th>
                 <th>Steals/Game</th>
-                <th>True Shooting Percentage</th>
-                <th>Field Goal Percentage</th>
-                <th>3 Point Percentage</th>
-                <th>Free Throw Percentage</th>
-                <th>Last Played Season</th>
-                <th>Last Played Age</th>
+                <th>True Shooting %</th>
+                <th>Field Goal %</th>
+                <th>3 Point %</th>
+                <th>Free Throw %</th>
+                <th>Last Season</th>
+                <th>Last Age</th>
                 <th>Total Seasons</th>
             </tr>
             {''.join([
@@ -199,18 +263,18 @@ def format_stats_for_display(user_stats, similar_player_stats, position=None, er
                 f'<td>{player["rebounds_per_game"]}</td>'
                 f'<td>{player["blocks_per_game"]}</td>'
                 f'<td>{player["steals_per_game"]}</td>'
-                f'<td>{player["true_shooting_percentage"]:.2f}%</td>'
-                f'<td>{player["field_goal_percentage"]:.2f}%</td>'
-                f'<td>{player["three_point_percentage"]:.2f}%</td>'
-                f'<td>{player["free_throw_percentage"]:.2f}%</td>'
+                f'<td>{player["true_shooting_percentage"]:.1f}%</td>'
+                f'<td>{player["field_goal_percentage"]:.1f}%</td>'
+                f'<td>{player["three_point_percentage"]:.1f}%</td>'
+                f'<td>{player["free_throw_percentage"]:.1f}%</td>'
                 f'<td>{player["last_played_season"]}</td>'
                 f'<td>{player["last_played_age"]}</td>'
                 f'<td>{player["total_seasons"]}</td></tr>'
                 for player in user_stats
             ])}
         </table>
-        <h3>Similar Career Players Stats:</h3>
-        <table border='1'>
+        <h3>Similar Players</h3>
+        <table class="nba-table">
             <tr>
                 <th>Player</th>
                 <th>Points/Game</th>
@@ -218,14 +282,14 @@ def format_stats_for_display(user_stats, similar_player_stats, position=None, er
                 <th>Rebounds/Game</th>
                 <th>Blocks/Game</th>
                 <th>Steals/Game</th>
-                <th>True Shooting Percentage</th>
-                <th>Field Goal Percentage</th>
-                <th>3 Point Percentage</th>
-                <th>Free Throw Percentage</th>
-                <th>Last Played Season</th>
-                <th>Last Played Age</th>
+                <th>True Shooting %</th>
+                <th>Field Goal %</th>
+                <th>3 Point %</th>
+                <th>Free Throw %</th>
+                <th>Last Season</th>
+                <th>Last Age</th>
                 <th>Total Seasons</th>
-                <th>Similarity Score</th>
+                <th>Similarity</th>
             </tr>
             {''.join([
                 f'<tr><td>{player["player_name"]}</td>'
@@ -234,19 +298,19 @@ def format_stats_for_display(user_stats, similar_player_stats, position=None, er
                 f'<td>{player["rebounds_per_game"]}</td>'
                 f'<td>{player["blocks_per_game"]}</td>'
                 f'<td>{player["steals_per_game"]}</td>'
-                f'<td>{player["true_shooting_percentage"]:.2f}%</td>'
-                f'<td>{player["field_goal_percentage"]:.2f}%</td>'
-                f'<td>{player["three_point_percentage"]:.2f}%</td>'
-                f'<td>{player["free_throw_percentage"]:.2f}%</td>'
+                f'<td>{player["true_shooting_percentage"]:.1f}%</td>'
+                f'<td>{player["field_goal_percentage"]:.1f}%</td>'
+                f'<td>{player["three_point_percentage"]:.1f}%</td>'
+                f'<td>{player["free_throw_percentage"]:.1f}%</td>'
                 f'<td>{player["last_played_season"]}</td>'
                 f'<td>{player["last_played_age"]}</td>'
                 f'<td>{player["total_seasons"]}</td>'
-                f'<td>{player["similarity_score"]:.2f}%</td></tr>'
+                f'<td class="{similarity_class(player["similarity_score"])}">{player["similarity_score"]:.1f}%</td></tr>'
                 for player in similar_player_stats
             ])}
         </table>
-        <h3>Summary by LLM:</h3>
-        <p>{llm_summary}</p>
+        <h3>Analysis</h3>
+        <div class="nba-summary">{llm_summary}</div>
     """
     return html_content
 
