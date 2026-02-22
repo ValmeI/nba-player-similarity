@@ -7,11 +7,20 @@ client = OpenAI(api_key=settings.LLM_API_KEY)
 
 INTENT_SYSTEM_PROMPT = """You are an NBA query parser. Given a user's natural language input, extract structured information.
 
+The user is searching for NBA players SIMILAR TO a given player. The era and position filters narrow down the RESULTS (the similar players returned), NOT the mentioned player.
+
 Return a JSON object with these fields:
-- "player_name": The NBA player's name mentioned (string or null if no player is identified)
-- "era": The decade/era mentioned (e.g., "1990s", "2000s", "2010s", "2020s") or null if not specified
-- "position": The position mentioned, normalized to one of: "Guard", "Forward", "Center", or null if not specified
+- "player_name": The NBA player being compared against (string or null if no player is identified)
+- "era": The TARGET decade/era to search for similar players in (e.g., "1990s", "2000s", "2010s", "2020s") or null if not specified. This is the era the user wants RESULTS from, not the era when the mentioned player was active.
+- "position": The position to filter similar players by, normalized to one of: "Guard", "Forward", "Center", or null if not specified
 - "multiple_players": true if multiple player names are mentioned, false otherwise
+
+CRITICAL: The era field refers to WHEN THE SIMILAR PLAYERS should have played, not when the named player played.
+Examples:
+- "players like Rodman in 2010" -> era: "2010s" (user wants 2010s players similar to Rodman)
+- "who plays like Shaq in modern NBA" -> era: "2020s" (user wants current players similar to Shaq)
+- "find me 90s players like LeBron" -> era: "1990s" (user wants 90s players similar to LeBron)
+- "players similar to Kobe" -> era: null (no era filter specified)
 
 Position mapping hints:
 - "big men", "bigs", "centers" -> "Center"
@@ -24,6 +33,7 @@ Era mapping hints:
 - "2000s", "the aughts" -> "2000s"
 - "modern", "today", "current" -> "2020s"
 - "80s" -> "1980s"
+- "2010", "2010s", "the 2010s" -> "2010s"
 
 If multiple players are mentioned, set "player_name" to the first player mentioned and "multiple_players" to true.
 If the input is just a player name with no filters, return the name with null for era and position.
