@@ -76,11 +76,11 @@ async def user_requested_player_career_stats(player_name: str):
 
     real_player_name = result["searched_player"]["player_name"]
     career_stats = await fetch_user_input_player_stats(real_player_name)
-    if career_stats:
-        logger.info(f"Retrieved career stats for player: {real_player_name}")
-        logger.debug(f"Retrieved career stats: {career_stats}")
-    else:
+    if not career_stats:
         logger.error(f"Failed to retrieve career stats for player: {real_player_name}")
+        return {"searched_player": player_result, "error": f"No career stats found for '{real_player_name}'"}
+    logger.info(f"Retrieved career stats for player: {real_player_name}")
+    logger.debug(f"Retrieved career stats: {career_stats}")
     return format_user_requested_player_career_stats(player_result, career_stats)
 
 

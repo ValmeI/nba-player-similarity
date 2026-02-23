@@ -48,89 +48,91 @@ class QdrantClientWrapper:
             },
         )
 
-    def upsert_players_data_to_qdrant(self, all_players_df: pd.DataFrame):
+    @staticmethod
+    def _row_to_point(row) -> PointStruct:
+        """Convert a DataFrame row to a Qdrant PointStruct."""
+        metadata = {
+            "PLAYER_NAME": str(row["PLAYER_NAME"]),
+            "PLAYER_NAME_LOWER_CASE": str(row["PLAYER_NAME"]).lower(),
+            "POSITION": str(row.get("POSITION", "Unknown")),
+            "PTS_PER_GAME": float(row["PTS_PER_GAME"]),
+            "REB_PER_GAME": float(row["REB_PER_GAME"]),
+            "AST_PER_GAME": float(row["AST_PER_GAME"]),
+            "STL_PER_GAME": float(row["STL_PER_GAME"]),
+            "BLK_PER_GAME": float(row["BLK_PER_GAME"]),
+            "TOV_PER_GAME": float(row["TOV_PER_GAME"]),
+            "MIN_PER_GAME": float(row["MIN_PER_GAME"]),
+            "TS%": float(row["TS%"]),
+            "EFG%": float(row["EFG%"]),
+            "FG%": float(row["FG%"]),
+            "3P%": float(row["3P%"]),
+            "FT%": float(row["FT%"]),
+            "PER": float(row["PER"]),
+            "WS/48": float(row["WS/48"]),
+            "USG%": float(row["USG%"]),
+            "PTS_PER_36": float(row["PTS_PER_36"]),
+            "AST_TO_RATIO": float(row["AST_TO_RATIO"]),
+            "STL%": float(row["STL%"]),
+            "BLK%": float(row["BLK%"]),
+            "PTS_RESPONSIBILITY": float(row["PTS_RESPONSIBILITY"]),
+            "GP": int(row["GP"]),
+            "GS": int(row["GS"]),
+            "LAST_PLAYED_AGE": int(row["LAST_PLAYED_AGE"]),
+            "LAST_PLAYED_SEASON": str(row["LAST_PLAYED_SEASON"]),
+            "LAST_PLAYED_YEAR": int(str(row["LAST_PLAYED_SEASON"])[:4]) if row.get("LAST_PLAYED_SEASON") else 0,
+            "TOTAL_SEASONS": int(row["TOTAL_SEASONS"]),
+            "CREATED_AT": datetime.now().isoformat(),
+        }
 
-        for _, row in tqdm(all_players_df.iterrows(), desc="Upserting players to Qdrant"):
-            # Convert metadata values to native Python types to avoid error
-            # "Unable to serialize unknown type: <class 'numpy.int64'>"
-            metadata = {
-                "PLAYER_NAME": str(row["PLAYER_NAME"]),
-                "PLAYER_NAME_LOWER_CASE": str(row["PLAYER_NAME"]).lower(),
-                "POSITION": str(row.get("POSITION", "Unknown")),
-                "PTS_PER_GAME": float(row["PTS_PER_GAME"]),
-                "REB_PER_GAME": float(row["REB_PER_GAME"]),
-                "AST_PER_GAME": float(row["AST_PER_GAME"]),
-                "STL_PER_GAME": float(row["STL_PER_GAME"]),
-                "BLK_PER_GAME": float(row["BLK_PER_GAME"]),
-                "TOV_PER_GAME": float(row["TOV_PER_GAME"]),
-                "MIN_PER_GAME": float(row["MIN_PER_GAME"]),
-                "TS%": float(row["TS%"]),
-                "EFG%": float(row["EFG%"]),
-                "FG%": float(row["FG%"]),
-                "3P%": float(row["3P%"]),
-                "FT%": float(row["FT%"]),
-                "PER": float(row["PER"]),
-                "WS/48": float(row["WS/48"]),
-                "USG%": float(row["USG%"]),
-                "PTS_PER_36": float(row["PTS_PER_36"]),
-                "AST_TO_RATIO": float(row["AST_TO_RATIO"]),
-                "STL%": float(row["STL%"]),
-                "BLK%": float(row["BLK%"]),
-                "PTS_RESPONSIBILITY": float(row["PTS_RESPONSIBILITY"]),
-                "GP": int(row["GP"]),
-                "GS": int(row["GS"]),
-                "LAST_PLAYED_AGE": int(row["LAST_PLAYED_AGE"]),
-                "LAST_PLAYED_SEASON": str(row["LAST_PLAYED_SEASON"]),
-                "LAST_PLAYED_YEAR": int(str(row["LAST_PLAYED_SEASON"])[:4]) if row.get("LAST_PLAYED_SEASON") else 0,
-                "TOTAL_SEASONS": int(row["TOTAL_SEASONS"]),
-                "CREATED_AT": datetime.now().isoformat(),
-            }
+        normalized_metadata = {
+            "NORMALIZED_PTS_PER_GAME": float(row["NORM_PTS_PER_GAME"]),
+            "NORMALIZED_REB_PER_GAME": float(row["NORM_REB_PER_GAME"]),
+            "NORMALIZED_AST_PER_GAME": float(row["NORM_AST_PER_GAME"]),
+            "NORMALIZED_STL_PER_GAME": float(row["NORM_STL_PER_GAME"]),
+            "NORMALIZED_BLK_PER_GAME": float(row["NORM_BLK_PER_GAME"]),
+            "NORMALIZED_TOV_PER_GAME": float(row["NORM_TOV_PER_GAME"]),
+            "NORMALIZED_MIN_PER_GAME": float(row["NORM_MIN_PER_GAME"]),
+            "NORMALIZED_TS%": float(row["NORM_TS%"]),
+            "NORMALIZED_EFG%": float(row["NORM_EFG%"]),
+            "NORMALIZED_FG%": float(row["NORM_FG%"]),
+            "NORMALIZED_FT%": float(row["NORM_FT%"]),
+            "NORMALIZED_PER": float(row["NORM_PER"]),
+            "NORMALIZED_WS/48": float(row["NORM_WS/48"]),
+            "NORMALIZED_USG%": float(row["NORM_USG%"]),
+            "NORMALIZED_PTS_PER_36": float(row["NORM_PTS_PER_36"]),
+            "NORMALIZED_AST_TO_RATIO": float(row["NORM_AST_TO_RATIO"]),
+            "NORMALIZED_STL%": float(row["NORM_STL%"]),
+            "NORMALIZED_BLK%": float(row["NORM_BLK%"]),
+            "NORMALIZED_PTS_RESPONSIBILITY": float(row["NORM_PTS_RESPONSIBILITY"]),
+            "NORMALIZED_GP": float(row["NORM_GP"]),
+            "NORMALIZED_GS": float(row["NORM_GS"]),
+            "NORMALIZED_LAST_PLAYED_AGE": float(row["NORM_LAST_PLAYED_AGE"]),
+            "NORMALIZED_TOTAL_SEASONS": float(row["NORM_TOTAL_SEASONS"]),
+            "EMBEDDINGS": str(row["embeddings"]),
+        }
 
-            # Mainly added for debugging purposes
-            normalized_metadata = {
-                "NORMALIZED_PTS_PER_GAME": float(row["NORM_PTS_PER_GAME"]),
-                "NORMALIZED_REB_PER_GAME": float(row["NORM_REB_PER_GAME"]),
-                "NORMALIZED_AST_PER_GAME": float(row["NORM_AST_PER_GAME"]),
-                "NORMALIZED_STL_PER_GAME": float(row["NORM_STL_PER_GAME"]),
-                "NORMALIZED_BLK_PER_GAME": float(row["NORM_BLK_PER_GAME"]),
-                "NORMALIZED_TOV_PER_GAME": float(row["NORM_TOV_PER_GAME"]),
-                "NORMALIZED_MIN_PER_GAME": float(row["NORM_MIN_PER_GAME"]),
-                "NORMALIZED_TS%": float(row["NORM_TS%"]),
-                "NORMALIZED_EFG%": float(row["NORM_EFG%"]),
-                "NORMALIZED_FG%": float(row["NORM_FG%"]),
-                "NORMALIZED_FT%": float(row["NORM_FT%"]),
-                "NORMALIZED_PER": float(row["NORM_PER"]),
-                "NORMALIZED_WS/48": float(row["NORM_WS/48"]),
-                "NORMALIZED_USG%": float(row["NORM_USG%"]),
-                "NORMALIZED_PTS_PER_36": float(row["NORM_PTS_PER_36"]),
-                "NORMALIZED_AST_TO_RATIO": float(row["NORM_AST_TO_RATIO"]),
-                "NORMALIZED_STL%": float(row["NORM_STL%"]),
-                "NORMALIZED_BLK%": float(row["NORM_BLK%"]),
-                "NORMALIZED_PTS_RESPONSIBILITY": float(row["NORM_PTS_RESPONSIBILITY"]),
-                "NORMALIZED_GP": float(row["NORM_GP"]),
-                "NORMALIZED_GS": float(row["NORM_GS"]),
-                "NORMALIZED_LAST_PLAYED_AGE": float(row["NORM_LAST_PLAYED_AGE"]),
-                "NORMALIZED_TOTAL_SEASONS": float(row["NORM_TOTAL_SEASONS"]),
-                "EMBEDDINGS": str(row["embeddings"]),
-            }
+        data_payload = {**metadata, **normalized_metadata}
+        return PointStruct(
+            id=str(uuid.uuid4()),
+            vector=row["embeddings"],
+            payload=data_payload,
+        )
 
-            logger.debug(
-                f"Upserting player {row['PLAYER_NAME']} with PLAYER_ID: {row['PLAYER_ID']} as PLAYER_ID type: {type(row['PLAYER_ID'])} and metadata: {metadata} and normalized_metadata: {normalized_metadata}"
-            )
+    def upsert_players_data_to_qdrant(self, all_players_df: pd.DataFrame, batch_size: int = 100):
+        batch = []
+        total = len(all_players_df)
 
-            data_payload = {**metadata, **normalized_metadata}
+        for _, row in tqdm(all_players_df.iterrows(), total=total, desc="Upserting players to Qdrant"):
+            batch.append(self._row_to_point(row))
 
-            self.client.upsert(
-                collection_name=self.collection_name,
-                points=[
-                    PointStruct(
-                        id=str(uuid.uuid4()),
-                        vector=row["embeddings"],
-                        payload=data_payload,
-                    )
-                ],
-            )
-        logger.info(f"Upserted {len(all_players_df)} players to Qdrant.")
+            if len(batch) >= batch_size:
+                self.client.upsert(collection_name=self.collection_name, points=batch)
+                batch = []
+
+        if batch:
+            self.client.upsert(collection_name=self.collection_name, points=batch)
+
+        logger.info(f"Upserted {total} players to Qdrant.")
 
     def store_players_embedding(
         self,
