@@ -26,7 +26,7 @@ class QdrantClientWrapper:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.client.close()
 
-    def initialize_qdrant_collection(self, vector_size: int, reset_collection: bool):
+    def initialize_qdrant_collection(self, vector_size: int, reset_collection: bool) -> None:
 
         existing_collections = [c.name for c in self.client.get_collections().collections]
         logger.info(f"Found existing collections: {existing_collections}")
@@ -124,7 +124,7 @@ class QdrantClientWrapper:
             payload=data_payload,
         )
 
-    def upsert_players_data_to_qdrant(self, all_players_df: pd.DataFrame, batch_size: int = 100):
+    def upsert_players_data_to_qdrant(self, all_players_df: pd.DataFrame, batch_size: int = 100) -> None:
         batch = []
         total = len(all_players_df)
 
@@ -143,14 +143,14 @@ class QdrantClientWrapper:
     def store_players_embedding(
         self,
         data_dir: str,
-    ):
+    ) -> None:
         players_stats_df = fetch_all_players_from_local_files(data_dir)
         logger.debug(f"Processing players list of length {len(players_stats_df)} for embeddings and metadata...")
         embeddings_creator = PlayerEmbeddings(players_stats_df)
         processed_df = embeddings_creator.create_players_embeddings()
         self.upsert_players_data_to_qdrant(processed_df)
 
-    def search_players_by_name(self, player_name: str) -> list:
+    def search_players_by_name(self, player_name: str) -> tuple[list, list]:
         player_name_lower = player_name.lower()
         logger.info(f"Searching for player {player_name} in Qdrant collection '{self.collection_name}'")
         results, _ = self.client.scroll(
@@ -208,7 +208,7 @@ class QdrantClientWrapper:
             return Filter(must=conditions)
         return None
 
-    def search_similar_players(self, query_vector: list, position: str = None, era: str = None):
+    def search_similar_players(self, query_vector: list, position: str = None, era: str = None) -> list:
         query_filter = self._build_search_filter(position=position, era=era)
         results = self.client.search(
             collection_name=self.collection_name,
@@ -227,8 +227,8 @@ class AsyncQdrantClientWrapper(QdrantClientWrapper):
     blocking the event loop.
     """
 
-    async def search_players_by_name(self, player_name: str) -> list:
+    async def search_players_by_name(self, player_name: str) -> tuple[list, list]:
         return await asyncio.to_thread(super().search_players_by_name, player_name)
 
-    async def search_similar_players(self, query_vector: list, position: str = None, era: str = None):
+    async def search_similar_players(self, query_vector: list, position: str = None, era: str = None) -> list:
         return await asyncio.to_thread(super().search_similar_players, query_vector, position, era)

@@ -11,7 +11,7 @@ from icecream import ic
 from tasks.data_loading.get_nba_data import get_player_info
 
 
-def fill_missing_values(df: pd.DataFrame):
+def fill_missing_values(df: pd.DataFrame) -> pd.DataFrame:
     categorization = {
         "numeric_columns": [
             "PLAYER_AGE",
@@ -52,7 +52,7 @@ def fill_missing_values(df: pd.DataFrame):
     return df
 
 
-def fetch_player_stats_from_local_file(player_name: str, data_dir: str):
+def fetch_player_stats_from_local_file(player_name: str, data_dir: str) -> pd.DataFrame:
     logger.debug(f"Fetching player stats from {data_dir} for {player_name}")
     all_files = os.listdir(data_dir)
     best_match_file_name = find_top_matches(player_name, all_files, settings.FUZZ_THRESHOLD_LOCAL_STATS_FILE)
@@ -60,7 +60,7 @@ def fetch_player_stats_from_local_file(player_name: str, data_dir: str):
     return pd.read_parquet(file_path)
 
 
-def fetch_all_players_from_local_files(data_dir: str):
+def fetch_all_players_from_local_files(data_dir: str) -> pd.DataFrame | None:
     all_files = [os.path.join(data_dir, file) for file in os.listdir(data_dir) if file.endswith(".parquet")]
     logger.info(f"Fetching all players from {data_dir} with {len(all_files)} files")
     # not using list comprehension because it's hard to debug which file is causing the errors
@@ -77,7 +77,7 @@ def fetch_all_players_from_local_files(data_dir: str):
         return None
 
 
-def calculate_career_averages(player_stats_df: pd.DataFrame):
+def calculate_career_averages(player_stats_df: pd.DataFrame) -> pd.DataFrame:
     career_totals = player_stats_df.sum(numeric_only=True)
     total_games_played = career_totals["GP"]
     if total_games_played == 0:
@@ -164,7 +164,7 @@ def calculate_career_averages(player_stats_df: pd.DataFrame):
     return pd.DataFrame([career_averages])
 
 
-def add_all_player_metrics_to_parquet(df: pd.DataFrame, player_name: str, overwrite_all_metrics: bool = False):
+def add_all_player_metrics_to_parquet(df: pd.DataFrame, player_name: str, overwrite_all_metrics: bool = False) -> None:
     if df.empty:
         logger.warning(f"Empty DataFrame for {player_name}")
         return
@@ -198,13 +198,13 @@ def round_career_averages(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def remove_multiple_seasons(df: pd.DataFrame):
+def remove_multiple_seasons(df: pd.DataFrame) -> pd.DataFrame:
     df = df.sort_values("SEASON_ID")
     df = df.drop_duplicates(subset=["PLAYER_ID", "SEASON_ID"], keep="last")
     return df
 
 
-def process_player_file(file: str, overwrite_all_metrics: bool):
+def process_player_file(file: str, overwrite_all_metrics: bool) -> str:
     try:
         file_path = os.path.join(settings.RAW_NBA_DATA_PATH, file)
         player_name = file.split("_career_stats.parquet")[0].replace("_", " ")
@@ -215,7 +215,7 @@ def process_player_file(file: str, overwrite_all_metrics: bool):
     return file
 
 
-def process_player_metrics_in_processes(overwrite_all_metrics: bool = False):
+def process_player_metrics_in_processes(overwrite_all_metrics: bool = False) -> None:
     start_time = time.perf_counter()
     logger.info(
         f"Starting to process all players metrics on {datetime.now()} and add them to folder {settings.PROCESSED_NBA_DATA_PATH}"

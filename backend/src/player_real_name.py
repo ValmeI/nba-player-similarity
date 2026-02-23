@@ -5,7 +5,7 @@ from shared.config import settings
 from pprint import pformat
 
 
-def get_player_from_aliases(user_input_player_name: str) -> str:
+def get_player_from_aliases(user_input_player_name: str) -> str | None:
     for player in PLAYERS_ALIASES:
         logger.debug(f"Checking aliases for player: {player} and user input: {user_input_player_name}")
         if player["full_name"].lower() == user_input_player_name.lower():
@@ -18,7 +18,7 @@ def get_player_from_aliases(user_input_player_name: str) -> str:
     return None
 
 
-def get_player_from_local_files(user_input_player_name: str, data_dir: str):
+def get_player_from_local_files(user_input_player_name: str, data_dir: str) -> dict:
     files: list = os.listdir(data_dir)
     potential_matches = find_all_potential_matches(user_input_player_name, files, settings.FUZZ_THRESHOLD_LOCAL_NAME)
     return potential_matches

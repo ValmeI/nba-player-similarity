@@ -32,7 +32,7 @@ async def get_version() -> dict[str, str]:
     }
 
 
-async def generate_similar_players_search_query_vector(player_name: str):
+async def generate_similar_players_search_query_vector(player_name: str) -> list | None:
     try:
         query_vector, _ = await client.search_players_by_name(player_name.lower())
         return query_vector
@@ -41,7 +41,7 @@ async def generate_similar_players_search_query_vector(player_name: str):
         return None
 
 
-async def fetch_user_input_player_stats(player_name: str):
+async def fetch_user_input_player_stats(player_name: str) -> list | None:
     try:
         _, career_stats = await client.search_players_by_name(player_name.lower())
         return career_stats
@@ -50,7 +50,7 @@ async def fetch_user_input_player_stats(player_name: str):
         return None
 
 
-async def handle_player_search_result(player_result, player_name):
+async def handle_player_search_result(player_result, player_name) -> dict:
     if player_result.get("error"):
         return {
             "searched_player": {"target": player_result["target"], "player_name": player_name},
@@ -66,7 +66,7 @@ async def handle_player_search_result(player_result, player_name):
 
 
 @app.get("/user_requested_player_career_stats/")
-async def user_requested_player_career_stats(player_name: str):
+async def user_requested_player_career_stats(player_name: str) -> dict | list:
     logger.info(f"Received request for career stats for player: {player_name}")
     player_name = player_name.lower()
     player_result = await asyncio.to_thread(get_real_player_name, player_name)
@@ -90,7 +90,7 @@ async def search_similar_players(
     player_name: str,
     position: Optional[str] = None,
     era: Optional[str] = None,
-):
+) -> dict | list:
     player_name = player_name.lower()
     player_result = await asyncio.to_thread(get_real_player_name, player_name)
 
@@ -124,7 +124,7 @@ async def search_similar_players(
 
 
 @app.get("/recent_searches/")
-async def get_recent_searches(limit: int = Query(default=10, gt=0, le=50)):
+async def get_recent_searches(limit: int = Query(default=10, gt=0, le=50)) -> dict:
     if not settings.RECENT_SEARCHES_ENABLED:
         return {"recent_searches": []}
     searches = await asyncio.to_thread(recent_searches_store.get_recent_searches, limit)

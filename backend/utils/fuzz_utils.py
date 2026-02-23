@@ -9,7 +9,7 @@ def find_top_matches(target: str, candidates: list, threshold: int = 80) -> str:
     return results[0]
 
 
-def find_all_potential_matches(target: str, candidates: list, threshold: int) -> tuple:
+def find_all_potential_matches(target: str, candidates: list, threshold: int) -> dict:
     potential_matches = []
     target = target.lower()
     candidates = [candidate.lower().rsplit("_", 2)[0].replace("_", " ") for candidate in candidates]

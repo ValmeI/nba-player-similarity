@@ -6,7 +6,7 @@ BACKEND_VERSION_ENDPOINT = f"http://{settings.FAST_API_HOST}:{settings.FAST_API_
 
 
 @st.cache_data(ttl=300)
-def fetch_versions():
+def fetch_versions() -> tuple[str, str]:
     try:
         response = requests.get(BACKEND_VERSION_ENDPOINT, timeout=settings.API_REQUEST_TIMEOUT)
         response.raise_for_status()
@@ -19,7 +19,7 @@ def fetch_versions():
     return frontend_version, backend_version
 
 
-def get_client_ip():
+def get_client_ip() -> str:
     try:
         ip = requests.get("https://api64.ipify.org?format=json", timeout=settings.API_REQUEST_TIMEOUT).json()["ip"]
         return ip
@@ -27,7 +27,7 @@ def get_client_ip():
         return "Unknown"
 
 
-def get_geolocation(ip):
+def get_geolocation(ip) -> dict:
     try:
         geo_data = requests.get(f"https://ipwhois.app/json/{ip}", timeout=settings.API_REQUEST_TIMEOUT).json()
         return {

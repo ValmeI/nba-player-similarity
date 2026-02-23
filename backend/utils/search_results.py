@@ -2,11 +2,11 @@ import json
 from shared.utils.app_logger import logger
 
 
-def filter_search_result(search_result: list, score_threshold: float):
+def filter_search_result(search_result: list, score_threshold: float) -> list:
     return [result for result in search_result if result.score > score_threshold]
 
 
-def format_similar_players_search_result(search_player_name, search_result: list):
+def format_similar_players_search_result(search_player_name, search_result: list) -> list[dict]:
     return [
         {
             "searched_player": search_player_name,
@@ -45,7 +45,7 @@ def format_similar_players_search_result(search_player_name, search_result: list
     ]
 
 
-def format_user_requested_player_career_stats(search_player_name, search_result: list):
+def format_user_requested_player_career_stats(search_player_name, search_result: list) -> list[dict]:
     return [
         {
             "searched_player": search_player_name,
@@ -76,11 +76,11 @@ def format_user_requested_player_career_stats(search_player_name, search_result:
     ]
 
 
-def format_logger_search_result(search_result: list):
+def format_logger_search_result(search_result: list) -> str:
     logger_results = [{**result.payload, "similarity_score": result.score} for result in search_result]
     return json.dumps(logger_results, indent=1)
 
 
-def remove_same_player(search_results: list, player_name: str):
+def remove_same_player(search_results: list, player_name: str) -> list:
     logger.debug(f"Removing same player: {player_name} from search results {search_results}")
     return [result for result in search_results if result.payload["PLAYER_NAME_LOWER_CASE"] != player_name.lower()]

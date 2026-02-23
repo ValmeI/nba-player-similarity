@@ -50,7 +50,7 @@ def _fetch_player_info(player_id: int) -> pd.DataFrame:
     return info.get_data_frames()[0]
 
 
-def fetch_and_save_player_stats(player_name: str):
+def fetch_and_save_player_stats(player_name: str) -> None:
     os.makedirs(settings.RAW_NBA_DATA_PATH, exist_ok=True)
     player_dict = players.find_players_by_full_name(player_name)
     if not player_dict:
@@ -123,7 +123,7 @@ def get_player_position(player_id: int) -> str:
     return get_player_info(player_id)["POSITION"]
 
 
-def fetch_all_players_stats_in_threads():
+def fetch_all_players_stats_in_threads() -> None:
     all_players = players.get_players()
     logger.info(f"Found {len(all_players)} players in NBA. Fetching raw NBA data...")
 

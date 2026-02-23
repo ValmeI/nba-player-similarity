@@ -4,7 +4,7 @@ from shared.config import settings
 client = OpenAI(api_key=settings.LLM_API_KEY)
 
 
-def generate_analysis(user_req_players_stats: list, similar_player_stats: list):
+def generate_analysis(user_req_players_stats: list, similar_player_stats: list) -> str:
     user_player = user_req_players_stats[0]["player_name"]
     similar_players = [player["player_name"] for player in similar_player_stats]
 
