@@ -1,14 +1,18 @@
 # Use an official Python runtime as a base image
 FROM python:3.12-slim
 
+# Copy uv binary from official image
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
 # Set the working directory
 WORKDIR /app
 
+# Install dependencies first (cached layer)
+COPY requirements_minimum.txt .
+RUN uv pip install --system --no-cache -r requirements_minimum.txt
+
 # Copy the project into the container
 COPY . /app
-
-# Install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
 
 # Expose FastAPI and Streamlit ports
 EXPOSE 8000
