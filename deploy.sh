@@ -175,9 +175,9 @@ sync_env_docker() {
     if remote "grep -q 'xxxxxxxxxxxxxxxxxxxxx' $REMOTE_DIR/.env_docker" > /dev/null 2>&1; then
         if [[ -f ".env" ]]; then
             local api_key
-            api_key=$(grep '^LLM_API_KEY' .env | sed 's/.*=\s*"\?\([^"]*\)"\?/\1/')
+            api_key=$(grep '^LLM_API_KEY' .env | cut -d= -f2- | tr -d ' "')
             if [[ -n "$api_key" && "$api_key" != "xxxxxxxxxxxxxxxxxxxxx" ]]; then
-                remote "sed -i 's|xxxxxxxxxxxxxxxxxxxxx|${api_key}|' $REMOTE_DIR/.env_docker"
+                remote "sed -i 's|^LLM_API_KEY.*|LLM_API_KEY = ${api_key}|' $REMOTE_DIR/.env_docker"
                 log_success "LLM_API_KEY injected from local .env"
             else
                 log_warning "No real API key in local .env — set LLM_API_KEY on NAS manually"
