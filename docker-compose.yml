@@ -31,7 +31,7 @@ services:
     networks:
       - nba-network
     environment:
-      FAST_API_URL: http://nba-app:8000  # FastAPI service name for inter-container communication
+      FAST_API_HOST: nba-app
     volumes:
       - ./logs:/app/logs
 
