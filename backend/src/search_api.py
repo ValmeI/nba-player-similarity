@@ -1,6 +1,7 @@
 import asyncio
 from typing import Optional
 from fastapi import FastAPI, HTTPException, Query
+from pydantic import BaseModel
 from shared.config import settings
 from backend.src.qdrant_wrapper import AsyncQdrantClientWrapper
 from backend.src.recent_searches_store import recent_searches_store
@@ -113,14 +114,47 @@ async def search_similar_players(
     if search_result:
         format_logger_search_result(search_result)
         logger.debug(f"Found results: {format_logger_search_result(search_result)}")
-        if settings.RECENT_SEARCHES_ENABLED:
-            await asyncio.to_thread(recent_searches_store.record_search, real_player_name, position, era)
         return format_similar_players_search_result(player_result, search_result)
     else:
         logger.error(
             f"No results found for player '{real_player_name}' in collection '{client.collection_name}' from user input '{player_name}'"
         )
         return {"searched_player": {"target": real_player_name, "player_name": player_name}, "similar_players": []}
+
+
+class RecordSearchRequest(BaseModel):
+    player_name: str
+    position: Optional[str] = None
+    era: Optional[str] = None
+    original_query: Optional[str] = None
+    search_source: Optional[str] = None
+    results_found: Optional[bool] = None
+    client_ip: Optional[str] = None
+    country: Optional[str] = None
+    region: Optional[str] = None
+    city: Optional[str] = None
+    timezone: Optional[str] = None
+
+
+@app.post("/record_search/")
+async def record_search(body: RecordSearchRequest) -> dict:
+    if not settings.RECENT_SEARCHES_ENABLED:
+        return {"status": "disabled"}
+    await asyncio.to_thread(
+        recent_searches_store.record_search,
+        player_name=body.player_name,
+        position=body.position,
+        era=body.era,
+        original_query=body.original_query,
+        search_source=body.search_source,
+        results_found=body.results_found,
+        client_ip=body.client_ip,
+        country=body.country,
+        region=body.region,
+        city=body.city,
+        timezone=body.timezone,
+    )
+    return {"status": "ok"}
 
 
 @app.get("/recent_searches/")

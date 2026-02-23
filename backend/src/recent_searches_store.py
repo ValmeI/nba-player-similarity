@@ -2,12 +2,13 @@ import json
 import os
 import tempfile
 import threading
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
+from datetime import timezone as _tz
 
 from shared.config import settings
 from shared.utils.app_logger import logger
 
-MAX_ENTRIES = 200
+MAX_ENTRIES = 5000
 
 
 class RecentSearchesStore:
@@ -41,7 +42,7 @@ class RecentSearchesStore:
             raise
 
     def _purge_expired(self, entries: list[dict]) -> list[dict]:
-        cutoff = datetime.now(timezone.utc) - timedelta(days=self.ttl_days)
+        cutoff = datetime.now(_tz.utc) - timedelta(days=self.ttl_days)
         result = []
         for e in entries:
             try:
@@ -51,20 +52,45 @@ class RecentSearchesStore:
                 continue
         return result
 
-    def record_search(self, player_name: str, position: str | None = None, era: str | None = None) -> None:
+    def record_search(
+        self,
+        player_name: str,
+        position: str | None = None,
+        era: str | None = None,
+        original_query: str | None = None,
+        search_source: str | None = None,
+        results_found: bool | None = None,
+        client_ip: str | None = None,
+        country: str | None = None,
+        region: str | None = None,
+        city: str | None = None,
+        timezone: str | None = None,
+    ) -> None:
         try:
             with self._lock:
                 entries = self._read()
                 entries = self._purge_expired(entries)
 
-                now = datetime.now(timezone.utc).isoformat()
+                now = datetime.now(_tz.utc).isoformat()
                 normalized_name = player_name.title()
                 key = (normalized_name, position, era)
+
+                user_info = {
+                    "original_query": original_query,
+                    "search_source": search_source,
+                    "results_found": results_found,
+                    "client_ip": client_ip,
+                    "country": country,
+                    "region": region,
+                    "city": city,
+                    "timezone": timezone,
+                }
 
                 # Dedup: update timestamp if same search exists
                 for entry in entries:
                     if (entry["player_name"], entry.get("position"), entry.get("era")) == key:
                         entry["searched_at"] = now
+                        entry.update(user_info)
                         break
                 else:
                     entries.append({
@@ -72,6 +98,7 @@ class RecentSearchesStore:
                         "position": position,
                         "era": era,
                         "searched_at": now,
+                        **user_info,
                     })
 
                 # Cap at MAX_ENTRIES (keep most recent)

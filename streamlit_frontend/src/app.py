@@ -11,7 +11,7 @@ if str(project_root) not in sys.path:
 
 from shared.config import settings
 from shared.utils.app_logger import logger
-from streamlit_frontend.src.api_client import get_user_input_stats, get_similar_player_stats, fetch_recent_searches
+from streamlit_frontend.src.api_client import get_user_input_stats, get_similar_player_stats, fetch_recent_searches, record_search
 from streamlit_frontend.src.components import (
     display_chat_messages,
     format_stats_for_display,
@@ -74,6 +74,21 @@ def handle_user_input() -> None:
         chart_html = generate_radar_chart_html(user_stats, similar_player_stats)
         st.session_state["messages"].append({"role": "assistant", "content": html_reply, "type": "html", "chart": chart_html})
 
+    geo = st.session_state.get("client_geolocation", {})
+    record_search(
+        player_name=player_name,
+        position=position,
+        era=era,
+        original_query=user_input,
+        search_source="typed",
+        results_found="error" not in user_stats and "error" not in similar_player_stats,
+        client_ip=st.session_state.get("client_ip", ""),
+        country=geo.get("country", ""),
+        region=geo.get("region", ""),
+        city=geo.get("city", ""),
+        timezone=geo.get("timezone", ""),
+    )
+
     st.session_state["user_input"] = ""
 
 
@@ -129,6 +144,21 @@ def main() -> None:
             html_reply = format_stats_for_display(user_stats, similar_player_stats, llm_summary, position=position, era=era)
             chart_html = generate_radar_chart_html(user_stats, similar_player_stats)
             st.session_state["messages"].append({"role": "assistant", "content": html_reply, "type": "html", "chart": chart_html})
+
+        geo = st.session_state.get("client_geolocation", {})
+        record_search(
+            player_name=player_name,
+            position=position,
+            era=era,
+            original_query=display,
+            search_source="pill_click",
+            results_found="error" not in user_stats and "error" not in similar_player_stats,
+            client_ip=st.session_state.get("client_ip", ""),
+            country=geo.get("country", ""),
+            region=geo.get("region", ""),
+            city=geo.get("city", ""),
+            timezone=geo.get("timezone", ""),
+        )
 
     if settings.RECENT_SEARCHES_ENABLED:
         recent = fetch_recent_searches(settings.RECENT_SEARCHES_DISPLAY_LIMIT)

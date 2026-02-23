@@ -61,6 +61,41 @@ def fetch_recent_searches(limit: int = 8) -> list[dict]:
         return []
 
 
+def record_search(
+    player_name: str,
+    position: str | None,
+    era: str | None,
+    original_query: str,
+    search_source: str,
+    results_found: bool,
+    client_ip: str,
+    country: str,
+    region: str,
+    city: str,
+    timezone: str,
+) -> None:
+    try:
+        requests.post(
+            f"{API_BASE_URL}/record_search/",
+            json={
+                "player_name": player_name,
+                "position": position,
+                "era": era,
+                "original_query": original_query,
+                "search_source": search_source,
+                "results_found": results_found,
+                "client_ip": client_ip,
+                "country": country,
+                "region": region,
+                "city": city,
+                "timezone": timezone,
+            },
+            timeout=settings.API_REQUEST_TIMEOUT,
+        )
+    except Exception as e:
+        logger.error(f"Failed to record search: {e}")
+
+
 def get_user_input_stats(user_input: str) -> dict | list[dict]:
     user_stats_result = fetch_user_input_player_stats(user_input)
     logger.debug(f"User stats result: {user_stats_result} for user input: {user_input}")
