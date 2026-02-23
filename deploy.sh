@@ -164,11 +164,11 @@ sync_env_docker() {
     log_section "Sync .env_docker"
 
     # Always copy .env_docker to NAS so new vars are never missed
-    if [[ -f ".env_docker" ]]; then
-        scp ".env_docker" "${SSH_HOST}:${REMOTE_DIR}/.env_docker"
-    else
-        scp ".env_EXAMPLE" "${SSH_HOST}:${REMOTE_DIR}/.env_docker"
+    local env_source=".env_docker"
+    if [[ ! -f "$env_source" ]]; then
+        env_source=".env_EXAMPLE"
     fi
+    ssh "${SSH_HOST}" "cat > ${REMOTE_DIR}/.env_docker" < "$env_source"
     log_success "Copied .env_docker to NAS"
 
     # Inject real LLM_API_KEY from local .env
