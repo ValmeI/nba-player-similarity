@@ -64,6 +64,12 @@ def _inches_to_display(inches: int) -> str:
     return f"{feet}'{remaining}\""
 
 
+def _weight_to_display(weight: int) -> str:
+    if not weight:
+        return "N/A"
+    return f"{weight} lbs"
+
+
 def format_stats_for_display(user_stats: list[dict], similar_player_stats: list[dict], llm_summary: str, position: str | None = None, era: str | None = None) -> str:
     active_filters = []
     if position:
@@ -110,7 +116,7 @@ def format_stats_for_display(user_stats: list[dict], similar_player_stats: list[
                 f'<tr><td>{html.escape(str(player["player_name"]))}</td>'
                 f'<td>{html.escape(str(player["position"]))}</td>'
                 f'<td>{_inches_to_display(player.get("height_inches", 0))}</td>'
-                f'<td>{player.get("weight", 0)} lbs</td>'
+                f'<td>{_weight_to_display(player.get("weight", 0))}</td>'
                 f'<td>{player["points_per_game"]}</td>'
                 f'<td>{player["assists_per_game"]}</td>'
                 f'<td>{player["rebounds_per_game"]}</td>'
@@ -151,7 +157,7 @@ def format_stats_for_display(user_stats: list[dict], similar_player_stats: list[
                 f'<tr><td>{html.escape(str(player["player_name"]))}</td>'
                 f'<td>{html.escape(str(player["position"]))}</td>'
                 f'<td>{_inches_to_display(player.get("height_inches", 0))}</td>'
-                f'<td>{player.get("weight", 0)} lbs</td>'
+                f'<td>{_weight_to_display(player.get("weight", 0))}</td>'
                 f'<td>{player["points_per_game"]}</td>'
                 f'<td>{player["assists_per_game"]}</td>'
                 f'<td>{player["rebounds_per_game"]}</td>'
