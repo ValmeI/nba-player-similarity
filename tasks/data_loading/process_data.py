@@ -61,7 +61,7 @@ def fetch_player_stats_from_local_file(player_name: str, data_dir: str):
 
 
 def fetch_all_players_from_local_files(data_dir: str):
-    all_files = [os.path.join(data_dir, file) for file in os.listdir(data_dir)]
+    all_files = [os.path.join(data_dir, file) for file in os.listdir(data_dir) if file.endswith(".parquet")]
     logger.info(f"Fetching all players from {data_dir} with {len(all_files)} files")
     # not using list comprehension because it's hard to debug which file is causing the errors
     players_stats_df_list = []
