@@ -10,6 +10,7 @@ set -euo pipefail
 # ============================================================================
 SSH_HOST="nas"  # SSH config host entry (~/.ssh/config)
 REMOTE_DIR="/volume1/docker/nba-player-similarity"
+DOCKER="/usr/local/bin/docker"
 DEPLOY_BRANCH="main"
 
 # Auto-install gum if missing (https://github.com/charmbracelet/gum)
@@ -135,7 +136,7 @@ preflight() {
     log_success "Git repository OK"
 
     # Docker available
-    if ! remote "sudo docker info" > /dev/null 2>&1; then
+    if ! remote "sudo $DOCKER info" > /dev/null 2>&1; then
         log_error "Docker not accessible — ensure passwordless sudo is configured for docker"
         exit 1
     fi
@@ -235,8 +236,8 @@ pull_on_nas() {
 docker_rebuild() {
     log_section "Docker Rebuild"
 
-    remote_sudo "cd $REMOTE_DIR && docker compose down" "Stopping containers..."
-    remote_sudo "cd $REMOTE_DIR && docker compose up --build -d" "Building and starting containers..."
+    remote_sudo "cd $REMOTE_DIR && $DOCKER compose down" "Stopping containers..."
+    remote_sudo "cd $REMOTE_DIR && $DOCKER compose up --build -d" "Building and starting containers..."
 
     # Wait for containers to stabilize
     sleep 5
@@ -248,7 +249,7 @@ data_ingest() {
     log_section "Data Ingestion"
 
     local container
-    container=$(remote "sudo docker ps -qf 'name=nba-app'" | tr -d '[:space:]')
+    container=$(remote "sudo $DOCKER ps -qf 'name=nba-app'" | tr -d '[:space:]')
 
     if [[ -z "$container" ]]; then
         log_error "nba-app container not running — cannot ingest"
@@ -256,7 +257,7 @@ data_ingest() {
     fi
 
     log "This may take a few minutes..."
-    remote_sudo "docker exec $container python -m tasks.data_ingesting.ingest_data_main" \
+    remote_sudo "$DOCKER exec $container python -m tasks.data_ingesting.ingest_data_main" \
         "Ingesting data into Qdrant (27D vectors)..."
 
     log_success "Data ingestion complete"
@@ -271,8 +272,8 @@ verify() {
 
     # Check containers
     local containers
-    containers=$(remote "sudo docker compose -f $REMOTE_DIR/docker-compose.yml ps --format '{{.Name}} {{.Status}}'" 2>/dev/null || \
-                 remote "sudo docker ps --filter 'name=nba-player' --format '{{.Names}} {{.Status}}'")
+    containers=$(remote "sudo $DOCKER compose -f $REMOTE_DIR/docker-compose.yml ps --format '{{.Name}} {{.Status}}'" 2>/dev/null || \
+                 remote "sudo $DOCKER ps --filter 'name=nba-player' --format '{{.Names}} {{.Status}}'")
 
     if echo "$containers" | grep -qi "nba-app.*up\|nba-app.*running"; then
         log_success "nba-app container is running"
