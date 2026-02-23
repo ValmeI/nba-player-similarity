@@ -84,11 +84,9 @@ def calculate_career_averages(player_stats_df: pd.DataFrame):
         logger.warning(f"No games played for {player_stats_df['PLAYER_NAME'].iloc[0]}")
         return pd.DataFrame()
 
-    # Fetch position from NBA API
     player_id = player_stats_df["PLAYER_ID"].iloc[0]
     position = get_player_position(int(player_id))
 
-    # Core per-game stats
     career_averages = {
         "PLAYER_NAME": player_stats_df["PLAYER_NAME"].iloc[0],
         "PLAYER_ID": player_stats_df["PLAYER_ID"].iloc[0],
@@ -107,7 +105,6 @@ def calculate_career_averages(player_stats_df: pd.DataFrame):
         "MIN_PER_GAME": career_totals["MIN"] / total_games_played,
     }
 
-    # Shooting percentages
     career_averages["FG%"] = (career_totals["FGM"] / career_totals["FGA"] * 100) if career_totals["FGA"] > 0 else 0
     career_averages["3P%"] = (career_totals["FG3M"] / career_totals["FG3A"] * 100) if career_totals["FG3A"] > 0 else 0
     career_averages["TS%"] = (
@@ -117,7 +114,6 @@ def calculate_career_averages(player_stats_df: pd.DataFrame):
     )
     career_averages["FT%"] = (career_totals["FTM"] / career_totals["FTA"] * 100) if career_totals["FTA"] > 0 else 0
 
-    # Advanced metrics
     career_averages["PER"] = (
         (
             career_totals["PTS"]
