@@ -8,6 +8,7 @@ import os
 from shared.utils.app_logger import logger
 from tqdm import tqdm
 from icecream import ic
+from tasks.data_loading.get_nba_data import get_player_info
 
 
 def fill_missing_values(df: pd.DataFrame):
@@ -60,7 +61,7 @@ def fetch_player_stats_from_local_file(player_name: str, data_dir: str):
 
 
 def fetch_all_players_from_local_files(data_dir: str):
-    all_files = [os.path.join(data_dir, file) for file in os.listdir(data_dir)]
+    all_files = [os.path.join(data_dir, file) for file in os.listdir(data_dir) if file.endswith(".parquet")]
     logger.info(f"Fetching all players from {data_dir} with {len(all_files)} files")
     # not using list comprehension because it's hard to debug which file is causing the errors
     players_stats_df_list = []
@@ -83,10 +84,15 @@ def calculate_career_averages(player_stats_df: pd.DataFrame):
         logger.warning(f"No games played for {player_stats_df['PLAYER_NAME'].iloc[0]}")
         return pd.DataFrame()
 
-    # Core per-game stats
+    player_id = player_stats_df["PLAYER_ID"].iloc[0]
+    player_info = get_player_info(int(player_id))
+
     career_averages = {
         "PLAYER_NAME": player_stats_df["PLAYER_NAME"].iloc[0],
         "PLAYER_ID": player_stats_df["PLAYER_ID"].iloc[0],
+        "POSITION": player_info["POSITION"],
+        "HEIGHT_INCHES": player_info["HEIGHT_INCHES"],
+        "WEIGHT": player_info["WEIGHT"],
         "GP": total_games_played,
         "GS": career_totals["GS"],
         "LAST_PLAYED_AGE": player_stats_df["PLAYER_AGE"].iloc[-1],
@@ -101,7 +107,6 @@ def calculate_career_averages(player_stats_df: pd.DataFrame):
         "MIN_PER_GAME": career_totals["MIN"] / total_games_played,
     }
 
-    # Shooting percentages
     career_averages["FG%"] = (career_totals["FGM"] / career_totals["FGA"] * 100) if career_totals["FGA"] > 0 else 0
     career_averages["3P%"] = (career_totals["FG3M"] / career_totals["FG3A"] * 100) if career_totals["FG3A"] > 0 else 0
     career_averages["TS%"] = (
@@ -111,7 +116,6 @@ def calculate_career_averages(player_stats_df: pd.DataFrame):
     )
     career_averages["FT%"] = (career_totals["FTM"] / career_totals["FTA"] * 100) if career_totals["FTA"] > 0 else 0
 
-    # Advanced metrics
     career_averages["PER"] = (
         (
             career_totals["PTS"]

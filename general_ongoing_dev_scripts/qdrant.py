@@ -43,15 +43,6 @@ def test_user_requested_player_career_stats(req_player_name: str):
 
 if __name__ == "__main__":
     player_name = "Michael Jordan"
-    # delete_collection(settings.QDRANT_COLLECTION_NAME)
-    # fetch_all_collections()
-    # search_collection(settings.QDRANT_COLLECTION_NAME, "kobe bryant")
-    # search_player_trajectory("kobe bryant")
-    # search_player_trajectory("Charles Nash")
-    # search_player_trajectory("Larry Sykes")
-    # file_paths = ["nba_data/processed_parquet_files/Kobe_Bryant_full_player_stats.parquet"]
-    # test_search_players_by_name("LeBron James", collection_name=settings.QDRANT_COLLECTION_NAME)
-    # test_user_requested_player_career_stats("Michael Jordan")
     test_add_all_player_metrics_to_parquet(
         f"nba_data/raw_parquet_files/{player_name.replace(' ', '_')}_career_stats.parquet",
         player_name,

@@ -1,3 +1,5 @@
+import asyncio
+from typing import Optional
 from fastapi import FastAPI, HTTPException
 from shared.config import settings
 from backend.src.qdrant_wrapper import AsyncQdrantClientWrapper
@@ -38,7 +40,6 @@ async def generate_similar_players_search_query_vector(player_name: str):
         return None
 
 
-# Just for simplicity, calling this code twice, one for emmbeddings and one for career stats
 async def fetch_user_input_player_stats(player_name: str):
     try:
         _, career_stats = await client.search_players_by_name(player_name.lower())
@@ -67,7 +68,7 @@ async def handle_player_search_result(player_result, player_name):
 async def user_requested_player_career_stats(player_name: str):
     logger.info(f"Received request for career stats for player: {player_name}")
     player_name = player_name.lower()
-    player_result = await get_real_player_name(player_name)
+    player_result = await asyncio.to_thread(get_real_player_name, player_name)
 
     result = await handle_player_search_result(player_result, player_name)
     if result["error"]:
@@ -75,34 +76,39 @@ async def user_requested_player_career_stats(player_name: str):
 
     real_player_name = result["searched_player"]["player_name"]
     career_stats = await fetch_user_input_player_stats(real_player_name)
-    if career_stats:
-        logger.info(f"Retrieved career stats for player: {real_player_name}")
-        logger.debug(f"Retrieved career stats: {career_stats}")
-    else:
+    if not career_stats:
         logger.error(f"Failed to retrieve career stats for player: {real_player_name}")
+        return {"searched_player": player_result, "error": f"No career stats found for '{real_player_name}'"}
+    logger.info(f"Retrieved career stats for player: {real_player_name}")
+    logger.debug(f"Retrieved career stats: {career_stats}")
     return format_user_requested_player_career_stats(player_result, career_stats)
 
 
 @app.get("/search_similar_players/")
-async def search_similar_players(player_name: str):
+async def search_similar_players(
+    player_name: str,
+    position: Optional[str] = None,
+    era: Optional[str] = None,
+):
     player_name = player_name.lower()
-    player_result = await get_real_player_name(player_name)
+    player_result = await asyncio.to_thread(get_real_player_name, player_name)
 
     result = await handle_player_search_result(player_result, player_name)
     if result["error"]:
         return result
 
     real_player_name = result["searched_player"]["player_name"]
-    logger.info(f"Received search query for real player name: {real_player_name} from user input: {player_name}")
+    logger.info(
+        f"Received search query for real player name: {real_player_name} from user input: {player_name}"
+        f" with filters - position: {position}, era: {era}"
+    )
 
     query_vector = await generate_similar_players_search_query_vector(real_player_name)
     if not query_vector:
         raise HTTPException(status_code=500, detail=f"Could not generate query vector for player '{real_player_name}'")
 
-    search_result = await client.search_similar_players(query_vector)
+    search_result = await client.search_similar_players(query_vector, position=position, era=era)
     search_result = remove_same_player(search_result, real_player_name)
-    # search_result = filter_search_result(search_result, settings.QDRANT_VECTOR_SEARCH_SCORE_THRESHOLD)
-
     if search_result:
         format_logger_search_result(search_result)
         logger.debug(f"Found results: {format_logger_search_result(search_result)}")

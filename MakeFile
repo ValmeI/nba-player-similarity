@@ -4,6 +4,12 @@ CONTAINER_NAME = $(shell docker ps --filter "name=nba-app" --format "{{.Names}}"
 DOCKER_EXEC = docker exec -it $(CONTAINER_NAME)
 REQUIRED_PORTS = 8000 8501 6333
 
+# Local venv variables
+VENV_DIR = .venv
+PYTHON = $(VENV_DIR)/bin/python
+UV = uv
+REQUIREMENTS = requirements_minimum.txt
+
 
 # ====== Docker Daemon Management ======
 .PHONY: check-docker start-docker
@@ -30,6 +36,24 @@ start-docker:
 	fi
 
 
+# ====== Virtual Environment ======
+.PHONY: venv check-venv
+
+## Create virtual environment and install dependencies
+venv:
+	@echo "Creating virtual environment with uv..."
+	$(UV) venv $(VENV_DIR) --python 3.12
+	$(UV) pip install -r $(REQUIREMENTS)
+	@echo "Virtual environment ready. Activate with: source $(VENV_DIR)/bin/activate"
+
+## Check that venv exists, create if missing
+check-venv:
+	@if [ ! -f "$(PYTHON)" ]; then \
+		echo "Virtual environment not found. Run 'make venv' first."; \
+		exit 1; \
+	fi
+
+
 # ====== Local Development Commands ======
 .PHONY: run-backend run-frontend data-load-local data-ingest-local lint format test kill-ports-local
 
@@ -42,9 +66,9 @@ kill-ports-local:
 	@echo "Ports $(REQUIRED_PORTS) are now free for local development."
 
 ## Run the backend locally
-run-backend: 
+run-backend: check-venv
 	@echo "Starting FastAPI backend..."
-	python -m backend.run_backend_server_main
+	$(PYTHON) -m backend.run_backend_server_main
 
 ## Run Qdrant locally
 run-qdrant:
@@ -52,19 +76,19 @@ run-qdrant:
 	docker run -d --name qdrant -p 6333:6333 qdrant/qdrant
 
 ## Run the frontend locally
-run-frontend: 
+run-frontend: check-venv
 	@echo "Starting Streamlit frontend..."
-	streamlit run streamlit_frontend/src/app.py
+	$(VENV_DIR)/bin/streamlit run streamlit_frontend/src/app.py
 
 ## Run data loading script locally
-data-load-local:
+data-load-local: check-venv
 	@echo "Running data loading script locally..."
-	python -m tasks.data_loading.data_load_main
+	$(PYTHON) -m tasks.data_loading.data_load_main
 
 ## Run data ingestion script locally
-data-ingest-local:
+data-ingest-local: check-venv
 	@echo "Running data ingestion script locally..."
-	python -m tasks.data_ingesting.ingest_data_main
+	$(PYTHON) -m tasks.data_ingesting.ingest_data_main
 
 
 # ====== Docker Deployment Commands ======
@@ -116,6 +140,9 @@ data-ingest: check-docker
 .PHONY: help
 help:
 	@echo "Usage: make <command>"
+	@echo ""
+	@echo "Virtual Environment:"
+	@echo "  venv              - Create venv with uv and install dependencies"
 	@echo ""
 	@echo "Docker Daemon Management:"
 	@echo "  check-docker      - Check if Docker is running and start it if not"

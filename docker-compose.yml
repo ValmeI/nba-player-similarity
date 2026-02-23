@@ -4,6 +4,7 @@ services:
   nba-app:
     build:
       context: .
+    command: uvicorn backend.run_backend_server_main:app --host 0.0.0.0 --port 8000
     ports:
       - "8000:8000"  # FastAPI
     env_file:
@@ -20,6 +21,7 @@ services:
   streamlit-app:
     build:
       context: .
+    command: streamlit run streamlit_frontend/src/app.py --server.port=8501 --server.address=0.0.0.0 --server.headless true
     ports:
       - "8501:8501"  # Streamlit
     env_file:
@@ -29,7 +31,7 @@ services:
     networks:
       - nba-network
     environment:
-      FAST_API_URL: http://nba-app:8000  # FastAPI service name for inter-container communication
+      FAST_API_HOST: nba-app
     volumes:
       - ./logs:/app/logs
 

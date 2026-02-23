@@ -22,5 +22,6 @@ __pycache__/
 .env
 logs/
 venv/
+.venv/
 qdrant_storage/
 *.tar
