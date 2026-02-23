@@ -51,6 +51,8 @@ class QdrantClientWrapper:
     @staticmethod
     def _row_to_point(row) -> PointStruct:
         """Convert a DataFrame row to a Qdrant PointStruct."""
+        # Convert metadata values to native Python types to avoid error
+        # "Unable to serialize unknown type: <class 'numpy.int64'>"
         metadata = {
             "PLAYER_NAME": str(row["PLAYER_NAME"]),
             "PLAYER_NAME_LOWER_CASE": str(row["PLAYER_NAME"]).lower(),
@@ -84,6 +86,7 @@ class QdrantClientWrapper:
             "CREATED_AT": datetime.now().isoformat(),
         }
 
+        # Mainly added for debugging purposes
         normalized_metadata = {
             "NORMALIZED_PTS_PER_GAME": float(row["NORM_PTS_PER_GAME"]),
             "NORMALIZED_REB_PER_GAME": float(row["NORM_REB_PER_GAME"]),
