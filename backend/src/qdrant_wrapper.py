@@ -50,7 +50,6 @@ class QdrantClientWrapper:
 
     @staticmethod
     def _row_to_point(row) -> PointStruct:
-        """Convert a DataFrame row to a Qdrant PointStruct."""
         # Convert metadata values to native Python types to avoid error
         # "Unable to serialize unknown type: <class 'numpy.int64'>"
         metadata = {
