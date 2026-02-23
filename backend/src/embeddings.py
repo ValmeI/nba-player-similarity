@@ -104,4 +104,5 @@ class PlayerEmbeddings:
         pos_values = self.players_stats_df[POSITION_COLUMNS].values * POSITION_WEIGHT
         all_embeddings = np.hstack([norm_values, pos_values])
         self.players_stats_df["embeddings"] = [row.tolist() for row in all_embeddings]
-        return self.players_stats_df[METADATA_COLUMNS + ["embeddings"] + NUMERIC_COLUMNS + TO_NORMALIZED_COLUMNS]
+        all_columns = list(dict.fromkeys(METADATA_COLUMNS + ["embeddings"] + NUMERIC_COLUMNS + TO_NORMALIZED_COLUMNS))
+        return self.players_stats_df[all_columns]
