@@ -16,6 +16,7 @@ services:
     volumes:
       - ./nba_data/raw_parquet_files:/app/nba_data/raw_parquet_files
       - ./nba_data/processed_parquet_files:/app/nba_data/processed_parquet_files
+      - ./nba_data/recent_searches:/app/nba_data/recent_searches
       - ./logs:/app/logs
 
   streamlit-app:

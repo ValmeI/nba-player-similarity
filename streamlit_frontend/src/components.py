@@ -289,5 +289,15 @@ def inject_nba_theme() -> None:
         .nba-similarity-high { color:#276749; font-weight:700; background:#f0fff4; padding:2px 8px; border-radius:10px; }
         .nba-similarity-mid { color:#C9082A; font-weight:600; background:#fff5f5; padding:2px 8px; border-radius:10px; }
         .nba-summary { background:linear-gradient(135deg,#f7fafc 0%,#edf2f7 100%); border-left:4px solid #17408B; padding:18px 20px; margin:16px 0 0 0; border-radius:0 10px 10px 0; line-height:1.7; font-size:14px; color:#2d3748; }
+
+        /* === Recent searches pills === */
+        .recent-searches-label {
+            color: #718096;
+            font-size: 0.82rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin: 0.5rem 0 0.2rem 0;
+        }
     </style>
     """, unsafe_allow_html=True)

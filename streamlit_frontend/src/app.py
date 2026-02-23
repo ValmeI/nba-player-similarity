@@ -11,7 +11,7 @@ if str(project_root) not in sys.path:
 
 from shared.config import settings
 from shared.utils.app_logger import logger
-from streamlit_frontend.src.api_client import get_user_input_stats, get_similar_player_stats
+from streamlit_frontend.src.api_client import get_user_input_stats, get_similar_player_stats, fetch_recent_searches
 from streamlit_frontend.src.components import (
     display_chat_messages,
     format_stats_for_display,
@@ -96,6 +96,63 @@ def main() -> None:
     </div>
     """, unsafe_allow_html=True)
     initialize_session_state()
+
+    # Process pending pill click — use structured data directly, skip LLM parser
+    if st.session_state.get("pending_pill_search"):
+        search = st.session_state.pop("pending_pill_search")
+        player_name = search["player_name"]
+        position = search.get("position")
+        era = search.get("era")
+
+        # Build display label for chat bubble
+        display = player_name
+        parts = []
+        if position:
+            parts.append(position)
+        if era:
+            parts.append(era)
+        if parts:
+            display += f" ({', '.join(parts)})"
+
+        st.session_state["messages"].append({"role": "user", "content": display})
+        st.session_state["last_processed_input"] = display
+
+        user_stats = get_user_input_stats(player_name)
+        similar_player_stats = get_similar_player_stats(user_stats, position=position, era=era)
+
+        if "error" in user_stats or "error" in similar_player_stats:
+            reply = user_stats["error"] if "error" in user_stats else similar_player_stats["error"]
+            st.session_state["messages"].append({"role": "assistant", "content": reply})
+        else:
+            with st.spinner("Generating analysis..."):
+                llm_summary = generate_analysis(user_stats, similar_player_stats)
+            html_reply = format_stats_for_display(user_stats, similar_player_stats, llm_summary, position=position, era=era)
+            chart_html = generate_radar_chart_html(user_stats, similar_player_stats)
+            st.session_state["messages"].append({"role": "assistant", "content": html_reply, "type": "html", "chart": chart_html})
+
+    if settings.RECENT_SEARCHES_ENABLED:
+        recent = fetch_recent_searches(settings.RECENT_SEARCHES_DISPLAY_LIMIT)
+        if recent:
+            st.markdown('<p class="recent-searches-label">Recent searches by others</p>', unsafe_allow_html=True)
+            pill_labels = []
+            for s in recent:
+                label = s["player_name"].title()
+                parts = []
+                if s.get("position"):
+                    parts.append(s["position"])
+                if s.get("era"):
+                    parts.append(s["era"])
+                if parts:
+                    label += f" ({', '.join(parts)})"
+                pill_labels.append(label)
+            selected_idx = st.pills("recent_searches", pill_labels, label_visibility="collapsed", key="recent_pills")
+            if selected_idx is not None:
+                # Find the matching search entry by label
+                idx = pill_labels.index(selected_idx)
+                st.session_state["pending_pill_search"] = recent[idx]
+                del st.session_state["recent_pills"]
+                st.rerun()
+
     display_chat_messages()
 
     st.text_input(

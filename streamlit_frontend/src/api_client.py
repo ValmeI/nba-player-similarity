@@ -46,6 +46,21 @@ def fetch_user_input_player_stats(requested_player_name: str) -> dict | list:
         return {"error": f"Error connecting to the server: {e}"}
 
 
+@st.cache_data(ttl=30)
+def fetch_recent_searches(limit: int = 8) -> list[dict]:
+    try:
+        response = requests.get(
+            f"{API_BASE_URL}/recent_searches/",
+            params={"limit": limit},
+            timeout=settings.API_REQUEST_TIMEOUT,
+        )
+        response.raise_for_status()
+        return response.json().get("recent_searches", [])
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Failed to fetch recent searches: {e}")
+        return []
+
+
 def get_user_input_stats(user_input: str) -> dict | list[dict]:
     user_stats_result = fetch_user_input_player_stats(user_input)
     logger.debug(f"User stats result: {user_stats_result} for user input: {user_input}")

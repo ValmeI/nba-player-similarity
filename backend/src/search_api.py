@@ -1,8 +1,9 @@
 import asyncio
 from typing import Optional
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from shared.config import settings
 from backend.src.qdrant_wrapper import AsyncQdrantClientWrapper
+from backend.src.recent_searches_store import recent_searches_store
 from shared.utils.app_logger import logger
 from backend.utils.search_results import (
     format_logger_search_result,
@@ -112,9 +113,19 @@ async def search_similar_players(
     if search_result:
         format_logger_search_result(search_result)
         logger.debug(f"Found results: {format_logger_search_result(search_result)}")
+        if settings.RECENT_SEARCHES_ENABLED:
+            await asyncio.to_thread(recent_searches_store.record_search, real_player_name, position, era)
         return format_similar_players_search_result(player_result, search_result)
     else:
         logger.error(
             f"No results found for player '{real_player_name}' in collection '{client.collection_name}' from user input '{player_name}'"
         )
         return {"searched_player": {"target": real_player_name, "player_name": player_name}, "similar_players": []}
+
+
+@app.get("/recent_searches/")
+async def get_recent_searches(limit: int = Query(default=10, gt=0, le=50)):
+    if not settings.RECENT_SEARCHES_ENABLED:
+        return {"recent_searches": []}
+    searches = await asyncio.to_thread(recent_searches_store.get_recent_searches, limit)
+    return {"recent_searches": searches}

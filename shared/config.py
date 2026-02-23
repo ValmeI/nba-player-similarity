@@ -42,6 +42,15 @@ class Settings(BaseSettings):
         )
     )
 
+    RECENT_SEARCHES_ENABLED: bool = Field(default=True)
+    RECENT_SEARCHES_FILE_PATH: str = Field(
+        default_factory=lambda: os.path.join(
+            "/app" if os.path.exists("/app") else ".", "nba_data", "recent_searches", "recent_searches.json"
+        )
+    )
+    RECENT_SEARCHES_DISPLAY_LIMIT: int = Field(default=8, gt=0)
+    RECENT_SEARCHES_TTL_DAYS: int = Field(default=7, gt=0)
+
     FETCH_RAW_DATA_FETCH: bool
     PROCESS_ALL_PLAYERS_METRIC: bool
     OWERWRITE_PLAYER_METRICS_IF_EXISTS: bool

@@ -162,6 +162,7 @@ cython_debug/
 #.idea/
 nba_data/processed_parquet_files
 nba_data/embedded_parquet_files
+nba_data/recent_searches/
 .DS_Store
 qdrant_storage/
 *.tar
