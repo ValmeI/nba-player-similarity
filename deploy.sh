@@ -218,6 +218,8 @@ pull_on_nas() {
     remote "cd $REMOTE_DIR && git fetch origin" "Fetching from GitHub..."
     remote "cd $REMOTE_DIR && git checkout $DEPLOY_BRANCH 2>/dev/null || git checkout -b $DEPLOY_BRANCH origin/$DEPLOY_BRANCH" \
         "Checking out $DEPLOY_BRANCH..."
+    # Reset .env_docker before pull — deploy script copies it fresh after pull
+    remote "cd $REMOTE_DIR && git checkout -- .env_docker 2>/dev/null || true"
     remote "cd $REMOTE_DIR && git pull origin $DEPLOY_BRANCH" "Pulling latest..."
 
     local new_commit
