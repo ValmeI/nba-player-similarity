@@ -56,6 +56,14 @@ def display_chat_messages() -> None:
             st.markdown(bubble_html, unsafe_allow_html=True)
 
 
+def _inches_to_display(inches: int) -> str:
+    if not inches:
+        return "N/A"
+    feet = inches // 12
+    remaining = inches % 12
+    return f"{feet}'{remaining}\""
+
+
 def format_stats_for_display(user_stats: list[dict], similar_player_stats: list[dict], llm_summary: str, position: str | None = None, era: str | None = None) -> str:
     active_filters = []
     if position:
@@ -83,6 +91,8 @@ def format_stats_for_display(user_stats: list[dict], similar_player_stats: list[
             <tr>
                 <th>Player</th>
                 <th>Position</th>
+                <th>Height</th>
+                <th>Weight</th>
                 <th>Points/Game</th>
                 <th>Assists/Game</th>
                 <th>Rebounds/Game</th>
@@ -99,6 +109,8 @@ def format_stats_for_display(user_stats: list[dict], similar_player_stats: list[
             {''.join([
                 f'<tr><td>{html.escape(str(player["player_name"]))}</td>'
                 f'<td>{html.escape(str(player["position"]))}</td>'
+                f'<td>{_inches_to_display(player.get("height_inches", 0))}</td>'
+                f'<td>{player.get("weight", 0)} lbs</td>'
                 f'<td>{player["points_per_game"]}</td>'
                 f'<td>{player["assists_per_game"]}</td>'
                 f'<td>{player["rebounds_per_game"]}</td>'
@@ -119,6 +131,8 @@ def format_stats_for_display(user_stats: list[dict], similar_player_stats: list[
             <tr>
                 <th>Player</th>
                 <th>Position</th>
+                <th>Height</th>
+                <th>Weight</th>
                 <th>Points/Game</th>
                 <th>Assists/Game</th>
                 <th>Rebounds/Game</th>
@@ -136,6 +150,8 @@ def format_stats_for_display(user_stats: list[dict], similar_player_stats: list[
             {''.join([
                 f'<tr><td>{html.escape(str(player["player_name"]))}</td>'
                 f'<td>{html.escape(str(player["position"]))}</td>'
+                f'<td>{_inches_to_display(player.get("height_inches", 0))}</td>'
+                f'<td>{player.get("weight", 0)} lbs</td>'
                 f'<td>{player["points_per_game"]}</td>'
                 f'<td>{player["assists_per_game"]}</td>'
                 f'<td>{player["rebounds_per_game"]}</td>'

@@ -77,19 +77,50 @@ def fetch_and_save_player_stats(player_name: str):
         raise
 
 
+def _height_to_inches(height_str: str) -> int:
+    """Convert NBA API height string like '6-6' to total inches (e.g., 78)."""
+    try:
+        feet, inches = height_str.split("-")
+        return int(feet) * 12 + int(inches)
+    except (ValueError, AttributeError):
+        return 0
+
+
+def get_player_info(player_id: int) -> dict:
+    """Fetch position, height, and weight for a player using the NBA API.
+
+    Returns a dict with keys: POSITION, HEIGHT_INCHES, WEIGHT.
+    """
+    try:
+        player_info_df = _fetch_player_info(player_id)
+        if player_info_df.empty:
+            return {"POSITION": "Unknown", "HEIGHT_INCHES": 0, "WEIGHT": 0}
+
+        position = player_info_df["POSITION"].iloc[0]
+        position = position if position else "Unknown"
+
+        height_str = player_info_df["HEIGHT"].iloc[0] if "HEIGHT" in player_info_df.columns else ""
+        height_inches = _height_to_inches(height_str) if height_str else 0
+
+        weight = player_info_df["WEIGHT"].iloc[0] if "WEIGHT" in player_info_df.columns else 0
+        try:
+            weight = int(weight) if weight else 0
+        except (ValueError, TypeError):
+            weight = 0
+
+        return {"POSITION": position, "HEIGHT_INCHES": height_inches, "WEIGHT": weight}
+    except Exception as e:
+        logger.warning(f"Failed to fetch info for player_id={player_id}: {e}")
+        return {"POSITION": "Unknown", "HEIGHT_INCHES": 0, "WEIGHT": 0}
+
+
 def get_player_position(player_id: int) -> str:
     """Fetch position for a player using the NBA API.
 
     Returns the full compound position string (e.g., "Guard-Forward").
     Returns "Unknown" if the position cannot be fetched.
     """
-    try:
-        player_info_df = _fetch_player_info(player_id)
-        position = player_info_df["POSITION"].iloc[0] if not player_info_df.empty else "Unknown"
-        return position if position else "Unknown"
-    except Exception as e:
-        logger.warning(f"Failed to fetch position for player_id={player_id}: {e}")
-        return "Unknown"
+    return get_player_info(player_id)["POSITION"]
 
 
 def fetch_all_players_stats_in_threads():

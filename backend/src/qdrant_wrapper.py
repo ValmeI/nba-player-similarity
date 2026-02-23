@@ -56,6 +56,8 @@ class QdrantClientWrapper:
             "PLAYER_NAME": str(row["PLAYER_NAME"]),
             "PLAYER_NAME_LOWER_CASE": str(row["PLAYER_NAME"]).lower(),
             "POSITION": str(row.get("POSITION", "Unknown")),
+            "HEIGHT_INCHES": int(row.get("HEIGHT_INCHES", 0)),
+            "WEIGHT": int(row.get("WEIGHT", 0)),
             "PTS_PER_GAME": float(row["PTS_PER_GAME"]),
             "REB_PER_GAME": float(row["REB_PER_GAME"]),
             "AST_PER_GAME": float(row["AST_PER_GAME"]),
@@ -110,6 +112,8 @@ class QdrantClientWrapper:
             "NORMALIZED_GS": float(row["NORM_GS"]),
             "NORMALIZED_LAST_PLAYED_AGE": float(row["NORM_LAST_PLAYED_AGE"]),
             "NORMALIZED_TOTAL_SEASONS": float(row["NORM_TOTAL_SEASONS"]),
+            "NORMALIZED_HEIGHT_INCHES": float(row["NORM_HEIGHT_INCHES"]),
+            "NORMALIZED_WEIGHT": float(row["NORM_WEIGHT"]),
             "EMBEDDINGS": str(row["embeddings"]),
         }
 

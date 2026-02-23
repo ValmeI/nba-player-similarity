@@ -6,9 +6,11 @@ from shared.utils.app_logger import logger
 pd.set_option("future.no_silent_downcasting", True)
 
 
-METADATA_COLUMNS = ["PLAYER_NAME", "PLAYER_ID", "LAST_PLAYED_SEASON", "POSITION"]
+METADATA_COLUMNS = ["PLAYER_NAME", "PLAYER_ID", "LAST_PLAYED_SEASON", "POSITION", "HEIGHT_INCHES", "WEIGHT"]
 
 NUMERIC_COLUMNS = [
+    "HEIGHT_INCHES",  # Height in inches
+    "WEIGHT",  # Weight in pounds
     "PTS_RESPONSIBILITY",  # Points responsibility
     "LAST_PLAYED_AGE",  # Age when the player last played
     "TOTAL_SEASONS",  # Total number of seasons played

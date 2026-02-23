@@ -58,6 +58,8 @@ def get_user_input_stats(user_input: str) -> dict | list[dict]:
         {
             "player_name": user_stats_result_player["searched_player"]["player_name"].title(),
             "position": user_stats_result_player.get("position", "Unknown"),
+            "height_inches": user_stats_result_player.get("height_inches", 0),
+            "weight": user_stats_result_player.get("weight", 0),
             "points_per_game": user_stats_result_player["points_per_game"],
             "assists_per_game": user_stats_result_player["assists_per_game"],
             "rebounds_per_game": user_stats_result_player["rebounds_per_game"],
@@ -95,6 +97,8 @@ def get_similar_player_stats(user_stats: dict | list[dict], position: str | None
             {
                 "player_name": player["player_name"].title(),
                 "position": player.get("position", "Unknown"),
+                "height_inches": player.get("height_inches", 0),
+                "weight": player.get("weight", 0),
                 "points_per_game": player["points_per_game"],
                 "assists_per_game": player["assists_per_game"],
                 "rebounds_per_game": player["rebounds_per_game"],
