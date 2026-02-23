@@ -236,8 +236,8 @@ pull_on_nas() {
 docker_rebuild() {
     log_section "Docker Rebuild"
 
-    remote_sudo "cd $REMOTE_DIR && $DOCKER compose down" "Stopping containers..."
-    remote_sudo "cd $REMOTE_DIR && $DOCKER compose up --build -d" "Building and starting containers..."
+    remote_sudo "sh -c 'cd $REMOTE_DIR && $DOCKER compose down'" "Stopping containers..."
+    remote_sudo "sh -c 'cd $REMOTE_DIR && $DOCKER compose up --build -d'" "Building and starting containers..."
 
     # Wait for containers to stabilize
     sleep 5
