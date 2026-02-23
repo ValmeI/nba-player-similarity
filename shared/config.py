@@ -59,6 +59,7 @@ class Settings(BaseSettings):
     NBA_API_RETRY_WAIT_MIN: float = Field(default=3.0, ge=0.0)
     NBA_API_RETRY_WAIT_MAX: float = Field(default=10.0, ge=0.0)
     NBA_API_TIMEOUT: int = Field(default=30, gt=0)
+    NBA_API_RATE_LIMIT_DELAY: float = Field(default=0.6, ge=0.0)
 
     # Frontend settings
     API_REQUEST_TIMEOUT: int

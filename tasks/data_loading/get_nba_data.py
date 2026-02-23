@@ -1,3 +1,5 @@
+import json
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from nba_api.stats.static import players
 import os
@@ -7,7 +9,7 @@ from nba_api.stats.endpoints.commonplayerinfo import CommonPlayerInfo
 from tqdm import tqdm
 from shared.utils.app_logger import logger
 from shared.config import settings
-from tenacity import retry, stop_after_attempt, wait_exponential_jitter, before_sleep_log
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential_jitter, before_sleep_log
 import logging
 
 
@@ -21,6 +23,7 @@ def _nba_api_retry():
     """Return a tenacity retry decorator configured from settings.
 
     Uses exponential backoff with jitter to avoid thundering herd against NBA API.
+    Retries on JSONDecodeError (empty/HTML responses from rate-limiting).
     """
     return retry(
         stop=stop_after_attempt(settings.NBA_API_RETRY_ATTEMPTS),
@@ -28,6 +31,7 @@ def _nba_api_retry():
             initial=settings.NBA_API_RETRY_WAIT_MIN,
             max=settings.NBA_API_RETRY_WAIT_MAX,
         ),
+        retry=retry_if_exception_type((ConnectionError, TimeoutError, json.JSONDecodeError)),
         before_sleep=before_sleep_log(_std_logger, logging.WARNING),
         reraise=True,
     )
@@ -41,6 +45,7 @@ def _fetch_career_stats(player_id: int) -> pd.DataFrame:
 
 @_nba_api_retry()
 def _fetch_player_info(player_id: int) -> pd.DataFrame:
+    time.sleep(settings.NBA_API_RATE_LIMIT_DELAY)
     info = CommonPlayerInfo(player_id=player_id, timeout=settings.NBA_API_TIMEOUT)
     return info.get_data_frames()[0]
 
