@@ -22,14 +22,11 @@ def display_chat_messages() -> None:
         is_html = msg.get("type") == "html"
 
         if is_html:
-            # HTML results render full-width via st.html (no tag stripping)
             st.html(content)
-            # Radar chart rendered separately via st.markdown (st.html iframes don't support inline SVG)
             chart = msg.get("chart")
             if chart:
                 st.markdown(chart, unsafe_allow_html=True)
         else:
-            # Render text messages as styled chat bubbles with avatars
             escaped = html.escape(content)
             escaped = escaped.replace("\n", "<br>")
             avatar = _render_avatar(role)

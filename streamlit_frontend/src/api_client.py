@@ -9,7 +9,6 @@ API_BASE_URL = f"http://{settings.FAST_API_HOST}:{settings.FAST_API_PORT}"
 
 @st.cache_data
 def fetch_similar_players(requested_player_name: str, position: str | None = None, era: str | None = None) -> dict | list:
-    # Capitalize the player name
     requested_player_name = requested_player_name.title()
     logger.info(f"Fetching similar players for: {requested_player_name} (position={position}, era={era})")
     try:
@@ -32,7 +31,6 @@ def fetch_similar_players(requested_player_name: str, position: str | None = Non
 
 @st.cache_data
 def fetch_user_input_player_stats(requested_player_name: str) -> dict | list:
-    # Capitalize the player name
     requested_player_name = requested_player_name.title()
     logger.info(f"Fetching career stats for: {requested_player_name}")
     try:

@@ -27,7 +27,6 @@ def generate_analysis(user_req_players_stats: list, similar_player_stats: list):
 
     output = response.choices[0].message.content.strip()
 
-    # Ensure output ends with a complete sentence
     if not output.endswith((".", "!", "?")):
         output = output.rsplit(".", 1)[0] + "."
 

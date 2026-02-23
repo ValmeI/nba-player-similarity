@@ -2,7 +2,6 @@ import requests
 import streamlit as st
 from shared.config import settings
 
-# Backend version endpoint
 BACKEND_VERSION_ENDPOINT = f"http://{settings.FAST_API_HOST}:{settings.FAST_API_PORT}/version"
 
 

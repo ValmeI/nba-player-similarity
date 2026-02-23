@@ -31,22 +31,18 @@ def handle_user_input() -> None:
     if not user_input:
         return
 
-    # Guard against double-firing: skip if this input was already processed
     if st.session_state["last_processed_input"] == user_input:
         return
     st.session_state["last_processed_input"] = user_input
 
     logger.info(f"User input received: {user_input}")
 
-    # Add user message to the chat history
     st.session_state["messages"].append({"role": "user", "content": user_input})
 
-    # Parse user intent using LLM
     with st.spinner("Understanding your request..."):
         intent = parse_user_intent(user_input)
     logger.info(f"Parsed intent: {intent}")
 
-    # Handle edge case: no player name identified
     if not intent["player_name"]:
         st.session_state["messages"].append({
             "role": "assistant",
@@ -55,7 +51,6 @@ def handle_user_input() -> None:
         st.session_state["user_input"] = ""
         return
 
-    # Handle edge case: multiple players mentioned
     if intent["multiple_players"]:
         st.session_state["messages"].append({
             "role": "assistant",
@@ -79,7 +74,6 @@ def handle_user_input() -> None:
         chart_html = generate_radar_chart_html(user_stats, similar_player_stats)
         st.session_state["messages"].append({"role": "assistant", "content": html_reply, "type": "html", "chart": chart_html})
 
-    # Clear the input field
     st.session_state["user_input"] = ""
 
 
@@ -93,7 +87,6 @@ def main() -> None:
     logger.info("Starting the application")
     inject_nba_theme()
 
-    # Custom HTML header banner with integrated version
     version_str = get_version_string()
     st.markdown(f"""
     <div class="nba-header">
@@ -109,7 +102,6 @@ def main() -> None:
         "Search for a player:", key="user_input", placeholder=settings.STREAMLIT_INPUT_PLACEHOLDER, on_change=handle_user_input
     )
 
-    # Footer
     st.markdown('<div class="nba-footer">Powered by AI & NBA Stats</div>', unsafe_allow_html=True)
 
 

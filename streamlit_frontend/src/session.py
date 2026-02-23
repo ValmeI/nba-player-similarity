@@ -7,7 +7,6 @@ from streamlit_frontend.src.utils import get_client_ip, get_geolocation
 
 def initialize_session_state() -> None:
     if "messages" not in st.session_state:
-        # Replace literal \n from env with markdown line breaks (two trailing spaces + newline)
         initial_message = settings.STREAMLIT_INITIAL_MESSAGE.replace("\\n", "  \n")
         st.session_state["messages"] = [{"role": "assistant", "content": initial_message}]
     if "user_input" not in st.session_state:

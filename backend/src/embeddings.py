@@ -8,7 +8,6 @@ pd.set_option("future.no_silent_downcasting", True)
 
 METADATA_COLUMNS = ["PLAYER_NAME", "PLAYER_ID", "LAST_PLAYED_SEASON", "POSITION"]
 
-# Define the numeric columns for embedding
 NUMERIC_COLUMNS = [
     "PTS_RESPONSIBILITY",  # Points responsibility
     "LAST_PLAYED_AGE",  # Age when the player last played
@@ -37,7 +36,6 @@ NUMERIC_COLUMNS = [
 ]
 
 
-# Define the normalized columns as we want to keep original columns also
 NORMALIZED_COLUMN_PREFIX = "NORM_"
 TO_NORMALIZED_COLUMNS = [f"{NORMALIZED_COLUMN_PREFIX}{col}" for col in NUMERIC_COLUMNS]
 

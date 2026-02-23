@@ -40,7 +40,6 @@ async def generate_similar_players_search_query_vector(player_name: str):
         return None
 
 
-# Just for simplicity, calling this code twice, one for emmbeddings and one for career stats
 async def fetch_user_input_player_stats(player_name: str):
     try:
         _, career_stats = await client.search_players_by_name(player_name.lower())
@@ -110,8 +109,6 @@ async def search_similar_players(
 
     search_result = await client.search_similar_players(query_vector, position=position, era=era)
     search_result = remove_same_player(search_result, real_player_name)
-    # search_result = filter_search_result(search_result, settings.QDRANT_VECTOR_SEARCH_SCORE_THRESHOLD)
-
     if search_result:
         format_logger_search_result(search_result)
         logger.debug(f"Found results: {format_logger_search_result(search_result)}")
