@@ -26,7 +26,7 @@ from streamlit_frontend.src.utils import fetch_versions
 st.set_page_config(layout="wide", page_title="NBA Player Similarity Finder", page_icon="\U0001f3c0")
 
 
-def handle_user_input():
+def handle_user_input() -> None:
     user_input = st.session_state.user_input.strip()
     if not user_input:
         return
@@ -83,12 +83,12 @@ def handle_user_input():
     st.session_state["user_input"] = ""
 
 
-def get_version_string():
+def get_version_string() -> str:
     frontend_version, backend_version = fetch_versions()
     return f"v{frontend_version} | API v{backend_version}"
 
 
-def main():
+def main() -> None:
     """Main function."""
     logger.info("Starting the application")
     inject_nba_theme()

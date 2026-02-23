@@ -8,7 +8,7 @@ API_BASE_URL = f"http://{settings.FAST_API_HOST}:{settings.FAST_API_PORT}"
 
 
 @st.cache_data
-def fetch_similar_players(requested_player_name, position=None, era=None):
+def fetch_similar_players(requested_player_name: str, position: str | None = None, era: str | None = None) -> dict | list:
     # Capitalize the player name
     requested_player_name = requested_player_name.title()
     logger.info(f"Fetching similar players for: {requested_player_name} (position={position}, era={era})")
@@ -31,7 +31,7 @@ def fetch_similar_players(requested_player_name, position=None, era=None):
 
 
 @st.cache_data
-def fetch_user_input_player_stats(requested_player_name):
+def fetch_user_input_player_stats(requested_player_name: str) -> dict | list:
     # Capitalize the player name
     requested_player_name = requested_player_name.title()
     logger.info(f"Fetching career stats for: {requested_player_name}")
@@ -48,7 +48,7 @@ def fetch_user_input_player_stats(requested_player_name):
         return {"error": f"Error connecting to the server: {e}"}
 
 
-def get_user_input_stats(user_input):
+def get_user_input_stats(user_input: str) -> dict | list[dict]:
     user_stats_result = fetch_user_input_player_stats(user_input)
     logger.debug(f"User stats result: {user_stats_result} for user input: {user_input}")
     if "error" in user_stats_result:
@@ -76,7 +76,7 @@ def get_user_input_stats(user_input):
     ]
 
 
-def get_similar_player_stats(user_stats, position=None, era=None):
+def get_similar_player_stats(user_stats: dict | list[dict], position: str | None = None, era: str | None = None) -> dict | list[dict]:
     if "error" in user_stats:
         return user_stats
     similar_players_result = fetch_similar_players(user_stats[0]["player_name"], position=position, era=era)

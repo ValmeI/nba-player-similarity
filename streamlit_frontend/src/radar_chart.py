@@ -2,7 +2,7 @@ import html
 import math
 
 
-def generate_radar_chart_html(user_stats, similar_player_stats):
+def generate_radar_chart_html(user_stats: list[dict], similar_player_stats: list[dict]) -> str:
     """Generate a pure SVG radar chart comparing the searched player vs top similar players."""
     if not similar_player_stats:
         return ""

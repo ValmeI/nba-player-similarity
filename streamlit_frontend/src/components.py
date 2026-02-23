@@ -3,7 +3,7 @@ import html
 import streamlit as st
 
 
-def _render_avatar(role):
+def _render_avatar(role: str) -> str:
     """Return an HTML avatar circle for the given role."""
     if role == "user":
         return '''<div style="width:36px; height:36px; border-radius:50%; background:#C9082A;
@@ -15,7 +15,7 @@ def _render_avatar(role):
                     font-size:16px; box-shadow:0 1px 4px rgba(0,0,0,0.12);">\U0001f3c0</div>'''
 
 
-def display_chat_messages():
+def display_chat_messages() -> None:
     for msg in st.session_state["messages"]:
         role = msg["role"]
         content = msg["content"]
@@ -59,7 +59,7 @@ def display_chat_messages():
             st.markdown(bubble_html, unsafe_allow_html=True)
 
 
-def format_stats_for_display(user_stats, similar_player_stats, llm_summary, position=None, era=None):
+def format_stats_for_display(user_stats: list[dict], similar_player_stats: list[dict], llm_summary: str, position: str | None = None, era: str | None = None) -> str:
     active_filters = []
     if position:
         active_filters.append(f"Position: {position}")
@@ -162,7 +162,7 @@ def format_stats_for_display(user_stats, similar_player_stats, llm_summary, posi
     return html_content
 
 
-def inject_nba_theme():
+def inject_nba_theme() -> None:
     """Inject global NBA-themed CSS."""
     st.markdown("""
     <style>
