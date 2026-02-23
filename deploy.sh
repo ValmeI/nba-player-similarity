@@ -22,7 +22,6 @@ fi
 DRY_RUN=false
 SKIP_BUILD=false
 DO_INGEST=false
-DO_SETUP_SUDO=false
 
 # ============================================================================
 # USAGE & LOGGING
@@ -42,7 +41,6 @@ usage() {
     -b, --branch NAME   Deploy a specific branch (default: main)
     --skip-build        Pull code only, skip Docker rebuild
     --ingest            Re-ingest data after deploy (needed when vector size changes)
-    --setup-sudo        One-time setup: configure passwordless sudo for Docker on NAS
 
   EXAMPLES
     ./deploy.sh                          Deploy main branch (pull + rebuild)
@@ -50,8 +48,6 @@ usage() {
     ./deploy.sh --ingest                 Deploy and re-ingest all player data
     ./deploy.sh --skip-build             Pull latest code, don't rebuild containers
     ./deploy.sh -n                       Dry run — preview without changes
-    ./deploy.sh --setup-sudo             Set up passwordless Docker sudo on NAS (once)
-
   WORKFLOW
     1. Commit and push your changes to GitHub
     2. Run ./deploy.sh (or ./deploy.sh --ingest if embeddings changed)
@@ -61,7 +57,7 @@ usage() {
     1. Install Git Server package on Synology NAS
     2. Add "Host nas" entry to ~/.ssh/config (HostName + User)
     3. SSH into NAS: git clone https://github.com/ValmeI/nba-player-similarity.git /volume1/docker/nba-player-similarity
-    4. Run: ./deploy.sh --setup-sudo     (configures passwordless Docker sudo)
+    4. Set up passwordless sudo for Docker on NAS (see README)
     5. Run: ./deploy.sh --ingest         (first deploy with data ingestion)
 
 EOF
@@ -115,63 +111,6 @@ remote_sudo() {
     fi
 }
 
-# ============================================================================
-# SUDO SETUP FOR DOCKER ON SYNOLOGY
-# ============================================================================
-
-setup_sudo() {
-    log_section "Setup Passwordless Sudo for Docker"
-
-    # Check SSH connectivity first
-    if ! ssh -o ConnectTimeout=5 -o BatchMode=yes "${SSH_HOST}" "echo ok" > /dev/null 2>&1; then
-        log_error "Cannot SSH to ${SSH_HOST}"
-        exit 1
-    fi
-    log_success "SSH connectivity OK"
-
-    # Check if already configured
-    if ssh "${SSH_HOST}" "sudo -n docker info" > /dev/null 2>&1; then
-        log_success "Passwordless sudo for Docker is already configured"
-        return 0
-    fi
-
-    log "Configuring passwordless sudo for Docker commands..."
-    log_warning "You will be prompted for your NAS sudo password (one time only)"
-    echo ""
-
-    # Create sudoers rule for docker commands
-    ssh -t "${SSH_HOST}" bash << 'REMOTE_SETUP'
-SUDOERS_FILE="/etc/sudoers.d/docker-deploy"
-SUDOERS_CONTENT="$(whoami) ALL=(ALL) NOPASSWD: /usr/local/bin/docker, /usr/local/bin/docker-compose, /usr/bin/docker, /usr/bin/docker-compose"
-
-echo "$SUDOERS_CONTENT" | sudo tee "$SUDOERS_FILE" > /dev/null
-sudo chmod 440 "$SUDOERS_FILE"
-sudo chown root:root "$SUDOERS_FILE"
-
-# Validate
-if sudo visudo -c > /dev/null 2>&1; then
-    echo "OK: sudoers syntax valid"
-else
-    echo "ERROR: invalid sudoers syntax, removing file"
-    sudo rm -f "$SUDOERS_FILE"
-    exit 1
-fi
-REMOTE_SETUP
-
-    # shellcheck disable=SC2181
-    if [[ $? -ne 0 ]]; then
-        log_error "Failed to configure sudo"
-        exit 1
-    fi
-
-    # Verify it works
-    if ssh "${SSH_HOST}" "sudo -n docker info" > /dev/null 2>&1; then
-        log_success "Passwordless sudo for Docker configured successfully"
-    else
-        log_error "Verification failed — sudo still requires password"
-        exit 1
-    fi
-}
 
 # ============================================================================
 # PRE-FLIGHT CHECKS
@@ -195,9 +134,9 @@ preflight() {
     fi
     log_success "Git repository OK"
 
-    # Docker available (passwordless sudo)
-    if ! ssh "${SSH_HOST}" "sudo -n docker info" > /dev/null 2>&1; then
-        log_error "Docker sudo not configured — run: ./deploy.sh --setup-sudo"
+    # Docker available
+    if ! remote "sudo docker info" > /dev/null 2>&1; then
+        log_error "Docker not accessible — ensure passwordless sudo is configured for docker"
         exit 1
     fi
     log_success "Docker OK"
@@ -384,7 +323,6 @@ while [[ $# -gt 0 ]]; do
         -b|--branch)     DEPLOY_BRANCH="$2"; shift 2 ;;
         --skip-build)    SKIP_BUILD=true; shift ;;
         --ingest)        DO_INGEST=true; shift ;;
-        --setup-sudo)    DO_SETUP_SUDO=true; shift ;;
         *)               log_error "Unknown option: $1"; usage ;;
     esac
 done
@@ -401,12 +339,6 @@ main() {
         "NBA Player Similarity Deploy" "" \
         "Target: ${SSH_HOST}" \
         "Branch: ${DEPLOY_BRANCH}"
-
-    # Handle setup-sudo separately
-    if [[ "$DO_SETUP_SUDO" == true ]]; then
-        setup_sudo
-        exit 0
-    fi
 
     preflight
     check_local
