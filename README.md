@@ -1,134 +1,103 @@
 # NBA Player Similarity
 
-## Description
-This project analyzes and compares NBA players based on various performance metrics using advanced similarity algorithms to identify comparable players.
+Find NBA players with similar career profiles using vector search and natural language queries.
 
----
+**Live at [valme.xyz](http://valme.xyz)**
 
-## Installation Instructions
+## Features
 
-### 1. Clone the Repository
+- **Natural language search** — ask things like "guards similar to Kobe from the 90s" (LLM intent parsing)
+- **Position & era filters** — narrow results by guard/forward/center and decade
+- **Radar chart comparisons** — visual overlay of player stat profiles
+- **Recent searches** — clickable pills showing what others have searched
+- **LLM-generated analysis** — short AI summary explaining why players are similar
+
+## Tech Stack
+
+FastAPI · Streamlit · Qdrant · OpenAI · Docker
+
+## Quick Start — Local
+
+Requires Python 3.12, [uv](https://github.com/astral-sh/uv), and Docker.
+
 ```bash
-git clone https://github.com/yourusername/nba-player-similarity.git
-cd nba-player-similarity
+make venv               # create venv and install deps
+make run-qdrant         # start Qdrant in Docker
+make data-load-local    # fetch and process NBA data
+make data-ingest-local  # ingest vectors into Qdrant
+make run-backend        # start FastAPI server
+make run-frontend       # start Streamlit UI
 ```
 
-### 2. Install Dependencies
-```bash
-pip install -r requirements.txt
-```
+Backend runs on `localhost:8000`, frontend on `localhost:8501`.
 
----
+## Quick Start — Docker
 
-## Usage Locally Without Docker
-
-### Step 1: Load and Process NBA Data
-Run the data loader to fetch and process NBA data:
-```bash
-python -m tasks.data_loading.data_load_main
-```
-
-### Step 2: Set Up Qdrant
-Download and run Qdrant as a Docker container:
-```bash
-docker pull qdrant/qdrant
-docker run -p 6333:6333 qdrant/qdrant
-```
-
-### Step 3: Ingest Data into Qdrant
-Run the data ingestion script to populate Qdrant:
-```bash
-python -m tasks.data_ingesting.ingest_data
-```
-
-### Step 4: Start the Backend Server
-Run the backend server using FastAPI:
-```bash
-python -m backend.run_backend_server_main
-```
-
-### Step 5: Start the Frontend Application
-Launch the Streamlit frontend application:
-```bash
-streamlit run streamlit_frontend/src/app.py
-```
-
----
-
-## Usage With Docker
-
-### Step 1: Build Docker Images
-```bash
-docker-compose build
-```
-
-### Step 2: Run Docker Compose
-```bash
-docker-compose up
-```
-
-### Step 1-2: Build and Start Together
 ```bash
 docker-compose up --build
 ```
 
-### Step 3: Access the Application Frontend
-Navigate to `http://localhost:8501` in your web browser to access the Streamlit frontend.
-Note: Make sure to replace `8501` with the actual port number used by your Streamlit application.
+Then load and ingest data inside the container:
 
-### Step 4: Access the Backend API
-Navigate to `http://localhost:8000` in your web browser to access the FastAPI backend.
-Note: Make sure to replace `8000` with the actual port number used by your FastAPI server.
-
-### Qdrant Setup
-Qdrant setup is automatically handled by Docker Compose. No separate setup is required.
-
-### Check Logs
 ```bash
-docker-compose logs -f nba-app
+make data-load
+make data-ingest
 ```
 
----
+## Deploy to NAS
 
-## Project Structure Overview
-```plaintext
-nba_project/
-├── backend/                      # Backend (FastAPI)
-│   ├── src/                      # Backend core logic
-│   ├── utils/                    # Backend utilities
-│   ├── run_backend_server_main.py
-│
-├── general_ongoing_dev_scripts/  # Miscellaneous development scripts
-│
-├── logs/                         # Logs for monitoring/debugging
-│
-├── nba_data/                     # Data folder
-│   ├── processed_parquet_files/  # Processed files for Qdrant/analysis
-│   ├── raw_parquet_files/        # Raw data files
-│
-├── shared/                       # Shared utilities across backend/frontend
-│   ├── utils/
-│   ├── config.py
-│
-├── streamlit_frontend/           # Frontend (Streamlit)
-│   ├── src/                      # Streamlit app core
-│
-├── tasks/                        # Scripts for one-off or periodic tasks
-│   ├── data_ingesting/           # Data ingestion-related tasks
-│   │   ├── ingest_data.py        # Main data ingestion script
-│   ├── data_main.py              # Entry point for data tasks
-│   ├── get_nba_data.py           # Raw data fetching
-│
-├── requirements.txt              # Project dependencies
+The `deploy.sh` script handles git-based deployment to a Synology NAS:
+
+```bash
+./deploy.sh                    # pull + rebuild containers
+./deploy.sh --ingest           # also re-ingest data
+./deploy.sh --skip-build       # pull only, no rebuild
+./deploy.sh -n                 # dry run
 ```
 
----
+Run `./deploy.sh --help` for full options.
 
-## Features
-- **Backend**: Built with FastAPI to handle data ingestion, processing, and API endpoints.
-- **Frontend**: Interactive UI built with Streamlit for visualizing player similarity results.
-- **Data Ingestion**: Automated scripts for fetching and processing NBA player data.
-- **Qdrant Integration**: Stores and retrieves similarity vectors efficiently.
-- **Logs**: Centralized logging for debugging and monitoring.
+## API Endpoints
 
----
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/` | Health check |
+| GET | `/version` | Frontend & backend versions |
+| GET | `/user_requested_player_career_stats/` | Career stats for a player |
+| GET | `/search_similar_players/` | Find similar players (with optional filters) |
+| POST | `/record_search/` | Record a search for analytics |
+| GET | `/recent_searches/` | Retrieve recent searches |
+
+## Configuration
+
+Copy `.env_EXAMPLE` to `.env` and fill in your values. Key sections:
+
+- **Qdrant** — host, port, collection name, vector settings
+- **FastAPI** — host, port, worker count
+- **LLM** — API key, model, temperature, intent parsing settings
+- **Recent Searches** — enabled flag, display limit, TTL
+
+For Docker deployments, the compose file uses `.env_docker`.
+
+## Project Structure
+
+```
+├── backend/
+│   ├── src/                    # API routes, Qdrant wrapper, embeddings, recent searches
+│   ├── utils/                  # fuzzy matching, search result formatting
+│   └── run_backend_server_main.py
+├── streamlit_frontend/
+│   └── src/                    # app, components, intent parser, LLM, radar chart
+├── shared/
+│   ├── config.py               # env-based configuration
+│   └── utils/                  # logging
+├── tasks/
+│   ├── data_loading/           # fetch and process NBA data
+│   └── data_ingesting/         # ingest vectors into Qdrant
+├── nba_data/                   # raw and processed parquet files
+├── deploy.sh                   # NAS deployment script
+├── docker-compose.yml
+├── Dockerfile
+├── Makefile
+└── requirements.txt
+```
