@@ -72,10 +72,12 @@ class RecentSearchesStore:
                 entries = self._purge_expired(entries)
 
                 now = datetime.now(_tz.utc).isoformat()
-                normalized_name = player_name.title()
-                key = (normalized_name, position, era)
 
-                user_info = {
+                entries.append({
+                    "player_name": player_name.title(),
+                    "position": position,
+                    "era": era,
+                    "searched_at": now,
                     "original_query": original_query,
                     "search_source": search_source,
                     "results_found": results_found,
@@ -84,22 +86,7 @@ class RecentSearchesStore:
                     "region": region,
                     "city": city,
                     "timezone": timezone,
-                }
-
-                # Dedup: update timestamp if same search exists
-                for entry in entries:
-                    if (entry["player_name"], entry.get("position"), entry.get("era")) == key:
-                        entry["searched_at"] = now
-                        entry.update(user_info)
-                        break
-                else:
-                    entries.append({
-                        "player_name": normalized_name,
-                        "position": position,
-                        "era": era,
-                        "searched_at": now,
-                        **user_info,
-                    })
+                })
 
                 # Cap at MAX_ENTRIES (keep most recent)
                 entries.sort(key=lambda e: e["searched_at"], reverse=True)
