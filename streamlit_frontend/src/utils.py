@@ -21,9 +21,15 @@ def fetch_versions() -> tuple[str, str]:
 
 def get_client_ip() -> str:
     try:
-        ip = requests.get("https://api64.ipify.org?format=json", timeout=settings.API_REQUEST_TIMEOUT).json()["ip"]
-        return ip
-    except:  # pylint: disable=bare-except
+        headers = st.context.headers
+        forwarded_for = headers.get("X-Forwarded-For", "")
+        if forwarded_for:
+            return forwarded_for.split(",")[0].strip()
+        real_ip = headers.get("X-Real-Ip", "")
+        if real_ip:
+            return real_ip.strip()
+        return "Unknown"
+    except Exception:
         return "Unknown"
 
 
