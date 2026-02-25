@@ -13,6 +13,11 @@ REMOTE_DIR="/volume1/docker/nba-player-similarity"
 DOCKER="/usr/local/bin/docker"
 DEPLOY_BRANCH="main"
 
+# SSH multiplexing — reuse a single connection to avoid repeated warnings & speed up calls
+SSH_CTRL_PATH="/tmp/ssh-deploy-${SSH_HOST}-$$"
+SSH_OPTS=(-o "ControlMaster=auto" -o "ControlPath=${SSH_CTRL_PATH}" -o "ControlPersist=60")
+trap 'ssh -o "ControlPath=${SSH_CTRL_PATH}" -O exit "${SSH_HOST}" 2>/dev/null' EXIT
+
 # Auto-install gum if missing (https://github.com/charmbracelet/gum)
 if ! command -v gum &>/dev/null; then
     echo "gum not found — installing via brew..."
@@ -88,9 +93,9 @@ remote() {
 
     if [[ -n "$msg" ]]; then
         gum spin --spinner dot --show-output --title "$msg" -- \
-            ssh "${SSH_HOST}" "$cmd"
+            ssh "${SSH_OPTS[@]}" "${SSH_HOST}" "$cmd"
     else
-        ssh "${SSH_HOST}" "$cmd"
+        ssh "${SSH_OPTS[@]}" "${SSH_HOST}" "$cmd"
     fi
 }
 
@@ -106,9 +111,9 @@ remote_sudo() {
 
     if [[ -n "$msg" ]]; then
         gum spin --spinner dot --show-output --title "$msg" -- \
-            ssh "${SSH_HOST}" "sudo $cmd"
+            ssh "${SSH_OPTS[@]}" "${SSH_HOST}" "sudo $cmd"
     else
-        ssh "${SSH_HOST}" "sudo $cmd"
+        ssh "${SSH_OPTS[@]}" "${SSH_HOST}" "sudo $cmd"
     fi
 }
 
@@ -121,7 +126,7 @@ preflight() {
     log_section "Pre-flight Checks"
 
     # SSH connectivity
-    if ! ssh -o ConnectTimeout=5 -o BatchMode=yes "${SSH_HOST}" "echo ok" > /dev/null 2>&1; then
+    if ! ssh "${SSH_OPTS[@]}" -o ConnectTimeout=5 -o BatchMode=yes "${SSH_HOST}" "echo ok" > /dev/null 2>&1; then
         log_error "Cannot SSH to ${SSH_HOST}"
         exit 1
     fi
@@ -168,7 +173,7 @@ sync_env_docker() {
     if [[ ! -f "$env_source" ]]; then
         env_source=".env_EXAMPLE"
     fi
-    ssh "${SSH_HOST}" "cat > ${REMOTE_DIR}/.env_docker" < "$env_source"
+    ssh "${SSH_OPTS[@]}" "${SSH_HOST}" "cat > ${REMOTE_DIR}/.env_docker" < "$env_source"
     log_success "Copied .env_docker to NAS"
 
     # Inject real LLM_API_KEY from local .env
@@ -364,7 +369,7 @@ main() {
     log_success "Deployment complete!"
     echo ""
     local nas_ip
-    nas_ip=$(ssh -G "$SSH_HOST" | awk '/^hostname / {print $2}')
+    nas_ip=$(ssh "${SSH_OPTS[@]}" -G "$SSH_HOST" | awk '/^hostname / {print $2}')
     log "Streamlit UI: http://${nas_ip}:8501"
     log "FastAPI docs: http://${nas_ip}:8000/docs"
 }
