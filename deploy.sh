@@ -165,6 +165,26 @@ preflight() {
 # ENV FILE SYNC
 # ============================================================================
 
+_inject_key() {
+    local key_name="$1"
+    local placeholder="xxxxxxxxxxxxxxxxxxxxx"
+    local current_value
+    current_value=$(remote "grep '^${key_name}' $REMOTE_DIR/.env_docker | cut -d= -f2- | tr -d ' \"'")
+
+    if [[ "$current_value" == "$placeholder" ]]; then
+        local real_value
+        real_value=$(grep "^${key_name}" .env | cut -d= -f2- | tr -d ' "')
+        if [[ -n "$real_value" && "$real_value" != "$placeholder" ]]; then
+            remote "sed -i 's|^${key_name}.*|${key_name}=${real_value}|' $REMOTE_DIR/.env_docker"
+            log_success "${key_name} injected from local .env"
+        else
+            log_warning "No real ${key_name} in local .env — set on NAS manually"
+        fi
+    else
+        log_success "${key_name} already set"
+    fi
+}
+
 sync_env_docker() {
     log_section "Sync .env_docker"
 
@@ -174,24 +194,13 @@ sync_env_docker() {
         env_source=".env_EXAMPLE"
     fi
     ssh "${SSH_OPTS[@]}" "${SSH_HOST}" "cat > ${REMOTE_DIR}/.env_docker" < "$env_source"
-    log_success "Copied .env_docker to NAS"
+    log_success "Copied $env_source to NAS as .env_docker"
 
-    # Inject real LLM_API_KEY from local .env
-    if remote "grep -q 'xxxxxxxxxxxxxxxxxxxxx' $REMOTE_DIR/.env_docker" > /dev/null 2>&1; then
-        if [[ -f ".env" ]]; then
-            local api_key
-            api_key=$(grep '^LLM_API_KEY' .env | cut -d= -f2- | tr -d ' "')
-            if [[ -n "$api_key" && "$api_key" != "xxxxxxxxxxxxxxxxxxxxx" ]]; then
-                remote "sed -i 's|^LLM_API_KEY.*|LLM_API_KEY = ${api_key}|' $REMOTE_DIR/.env_docker"
-                log_success "LLM_API_KEY injected from local .env"
-            else
-                log_warning "No real API key in local .env — set LLM_API_KEY on NAS manually"
-            fi
-        else
-            log_warning "No local .env file — set LLM_API_KEY on NAS manually"
-        fi
+    # Inject real API keys from local .env
+    if [[ -f ".env" ]]; then
+        _inject_key "LLM_API_KEY"
     else
-        log_success "LLM_API_KEY already set"
+        log_warning "No local .env file — set API keys on NAS manually"
     fi
 }
 
