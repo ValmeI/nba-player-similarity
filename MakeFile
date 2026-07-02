@@ -136,6 +136,21 @@ data-ingest: check-docker
 	$(DOCKER_EXEC) python -m tasks.data_ingesting.ingest_data_main
 
 
+# ====== Deployment to NAS ======
+.PHONY: deploy deploy-dry-run deploy-ingest
+
+## Deploy to NAS (default: main branch)
+deploy:
+	@./deploy.sh
+
+## Preview deployment without making changes
+deploy-dry-run:
+	@./deploy.sh --dry-run
+
+## Deploy and re-ingest data after deploy
+deploy-ingest:
+	@./deploy.sh --ingest
+
 
 # ====== Help ======
 .PHONY: help
@@ -165,4 +180,9 @@ help:
 	@echo "  clean             - Stop all services and clean up Docker resources"
 	@echo "  data-load         - Run the data loading script inside Docker"
 	@echo "  data-ingest       - Run the data ingestion script inside Docker"
-	@echo "  kill-ports-docker - Free required ports for Docker deployment"
+	@echo ""
+	@echo "Deployment to NAS:"
+	@echo "  deploy            - Deploy to NAS (main branch)"
+	@echo "  deploy-dry-run    - Preview deployment without making changes"
+	@echo "  deploy-ingest     - Deploy and re-ingest data"
+	@echo ""
