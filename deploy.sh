@@ -28,6 +28,7 @@ fi
 DRY_RUN=false
 SKIP_BUILD=false
 DO_INGEST=false
+HEALTH_CHECK_TIMEOUT=60  # seconds to wait for services to be ready
 
 # ============================================================================
 # USAGE & LOGGING
@@ -47,12 +48,14 @@ usage() {
     -b, --branch NAME   Deploy a specific branch (default: main)
     --skip-build        Pull code only, skip Docker rebuild
     --ingest            Re-ingest data after deploy (needed when vector size changes)
+    --wait SECONDS      Health check timeout in seconds (default: 60)
 
   EXAMPLES
     ./deploy.sh                          Deploy main branch (pull + rebuild)
     ./deploy.sh -b feature/new-ui        Deploy a feature branch
     ./deploy.sh --ingest                 Deploy and re-ingest all player data
     ./deploy.sh --skip-build             Pull latest code, don't rebuild containers
+    ./deploy.sh --wait 120               Deploy with 120s health check timeout
     ./deploy.sh -n                       Dry run — preview without changes
   WORKFLOW
     1. Commit and push your changes to GitHub
@@ -255,8 +258,9 @@ docker_rebuild() {
     remote_sudo "sh -c 'cd $REMOTE_DIR && $DOCKER compose down'" "Stopping containers..."
     remote_sudo "sh -c 'cd $REMOTE_DIR && $DOCKER compose up --build -d'" "Building and starting containers..."
 
-    # Wait for containers to stabilize
-    sleep 5
+    # Wait for containers to stabilize (services need time to initialize)
+    log "Waiting for services to initialize (10s)..."
+    sleep 10
 
     log_success "Docker containers rebuilt"
 }
@@ -309,24 +313,78 @@ verify() {
         log_error "qdrant container is NOT running"
     fi
 
-    # Check Streamlit is responding
-    if remote "curl -s -o /dev/null -w '%{http_code}' http://localhost:8501" 2>/dev/null | grep -q "200"; then
-        log_success "Streamlit UI responding at :8501"
+# ============================================================================
+# HEALTH CHECKS
+# ============================================================================
+
+health_check() {
+    local service="$1"
+    local endpoint="$2"
+    local max_wait="$3"
+    local elapsed=0
+    local interval=2
+
+    while [[ $elapsed -lt $max_wait ]]; do
+        local http_code
+        http_code=$(remote "curl -s -o /dev/null -w '%{http_code}' $endpoint" 2>/dev/null || echo "000")
+        
+        if [[ "$http_code" == "200" ]]; then
+            log_success "$service responding at $endpoint"
+            return 0
+        fi
+        
+        elapsed=$((elapsed + interval))
+        if [[ $elapsed -lt $max_wait ]]; then
+            log_warning "$service not ready yet (${elapsed}s/${max_wait}s)..."
+            sleep $interval
+        fi
+    done
+
+    log_warning "$service timeout — may take longer to stabilize"
+    return 1
+}
+
+# ============================================================================
+# VERIFICATION
+# ============================================================================
+
+verify() {
+    log_section "Verification"
+
+    # Check containers
+    local containers
+    containers=$(remote "sudo $DOCKER compose -f $REMOTE_DIR/docker-compose.yml ps --format '{{.Name}} {{.Status}}'" 2>/dev/null || \
+                 remote "sudo $DOCKER ps --filter 'name=nba-player' --format '{{.Names}} {{.Status}}'")
+
+    if echo "$containers" | grep -qi "nba-app.*up\|nba-app.*running"; then
+        log_success "nba-app container is running"
     else
-        log_warning "Streamlit UI not responding yet (may still be starting)"
+        log_error "nba-app container is NOT running"
     fi
 
-    # Check FastAPI is responding
-    if remote "curl -s -o /dev/null -w '%{http_code}' http://localhost:8000/docs" 2>/dev/null | grep -q "200"; then
-        log_success "FastAPI responding at :8000"
+    if echo "$containers" | grep -qi "streamlit.*up\|streamlit.*running"; then
+        log_success "streamlit-app container is running"
     else
-        log_warning "FastAPI not responding yet (may still be starting)"
+        log_error "streamlit-app container is NOT running"
     fi
+
+    if echo "$containers" | grep -qi "qdrant.*up\|qdrant.*running"; then
+        log_success "qdrant container is running"
+    else
+        log_error "qdrant container is NOT running"
+    fi
+
+    # Health checks with retry
+    log_section "Health Checks (waiting up to ${HEALTH_CHECK_TIMEOUT}s)"
+    
+    health_check "FastAPI" "http://localhost:8000/docs" "$HEALTH_CHECK_TIMEOUT"
+    health_check "Streamlit UI" "http://localhost:8501" "$HEALTH_CHECK_TIMEOUT"
 
     # Show NAS commit
     local commit
     commit=$(remote "cd $REMOTE_DIR && git log -1 --oneline")
     log "Deployed commit: $commit"
+}
 }
 
 # ============================================================================
@@ -340,6 +398,7 @@ while [[ $# -gt 0 ]]; do
         -b|--branch)     DEPLOY_BRANCH="$2"; shift 2 ;;
         --skip-build)    SKIP_BUILD=true; shift ;;
         --ingest)        DO_INGEST=true; shift ;;
+        --wait)          HEALTH_CHECK_TIMEOUT="$2"; shift 2 ;;
         *)               log_error "Unknown option: $1"; usage ;;
     esac
 done

@@ -137,7 +137,7 @@ data-ingest: check-docker
 
 
 # ====== Deployment to NAS ======
-.PHONY: deploy deploy-dry-run deploy-ingest
+.PHONY: deploy deploy-dry-run deploy-ingest deploy-slow
 
 ## Deploy to NAS (default: main branch)
 deploy:
@@ -146,6 +146,10 @@ deploy:
 ## Preview deployment without making changes
 deploy-dry-run:
 	@./deploy.sh --dry-run
+
+## Deploy with extended startup wait (120s for slower systems)
+deploy-slow:
+	@./deploy.sh --wait 120
 
 ## Deploy and re-ingest data after deploy
 deploy-ingest:
@@ -184,5 +188,6 @@ help:
 	@echo "Deployment to NAS:"
 	@echo "  deploy            - Deploy to NAS (main branch)"
 	@echo "  deploy-dry-run    - Preview deployment without making changes"
+	@echo "  deploy-slow       - Deploy with extended startup wait (120s)"
 	@echo "  deploy-ingest     - Deploy and re-ingest data"
 	@echo ""
