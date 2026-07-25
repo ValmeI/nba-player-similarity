@@ -255,8 +255,8 @@ pull_on_nas() {
 docker_rebuild() {
     log_section "Docker Rebuild"
 
-    remote_sudo "sh -c 'cd $REMOTE_DIR && $DOCKER compose down'" "Stopping containers..."
-    remote_sudo "sh -c 'cd $REMOTE_DIR && $DOCKER compose up --build -d'" "Building and starting containers..."
+    # No `down` first: `up --build -d` recreates only changed services, unchanged stay up (zero downtime).
+    remote_sudo "sh -c 'cd $REMOTE_DIR && $DOCKER compose up --build -d --remove-orphans'" "Building and starting containers..."
 
     # Wait for containers to stabilize (services need time to initialize)
     log "Waiting for services to initialize (10s)..."
